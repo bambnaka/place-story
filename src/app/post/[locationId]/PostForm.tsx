@@ -14,7 +14,13 @@ const MAX_COMMENT_LENGTH = 80;
 const MAX_NICKNAME_LENGTH = 20;
 const CROP_ASPECT_RATIO = 16 / 9;
 
-export default function PostForm({ locationId }: { locationId: string }) {
+export default function PostForm({
+  locationId,
+  isFromQr,
+}: {
+  locationId: string;
+  isFromQr: boolean;
+}) {
   const [rawFile, setRawFile] = useState<File | null>(null);
   const [rawImageUrl, setRawImageUrl] = useState<string | null>(null);
   const [isCropping, setIsCropping] = useState(false);
@@ -32,8 +38,10 @@ export default function PostForm({ locationId }: { locationId: string }) {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    recordScan(locationId, getParticipantId());
-  }, [locationId]);
+    if (isFromQr) {
+      recordScan(locationId, getParticipantId());
+    }
+  }, [locationId, isFromQr]);
 
   function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
     const selected = e.target.files?.[0];

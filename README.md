@@ -106,7 +106,9 @@ alter table place_story_posts add column participant_id uuid;
 
 ## Supabase の `place_story_scans` テーブル作成SQL(QRコード読み取り回数の記録用)
 
-投稿ページ(`/post/[locationId]`)が開かれるたびに1行記録され、管理画面の「QR読み取り回数」に使われます。
+投稿ページ(`/post/[locationId]`)が **QRコード経由で** 開かれたときだけ1行記録され、管理画面の「QR読み取り回数」に使われます。
+
+モニターに表示されるQRコードには `?src=qr` という目印が付いたURL(例: `/post/cafe-tanaka?src=qr`)が埋め込まれています。この目印が無い状態でページを開いた場合(URLを直接入力・リンクを共有された・動作確認のためブラウザで開いた、など)はカウントされません。これはあくまで「URLにその目印が付いていたか」による簡易的な判定であり、実際にスマホのカメラで読み取ったことを技術的に証明するものではない点にご注意ください。
 
 ```sql
 create table place_story_scans (

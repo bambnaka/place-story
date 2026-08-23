@@ -49,7 +49,7 @@ export default function ScreenView({ locationId }: { locationId: string }) {
   useEffect(() => {
     // window はブラウザでしか取得できないため、マウント後に反映する
     // eslint-disable-next-line react-hooks/set-state-in-effect
-    setPostUrl(`${window.location.origin}/post/${locationId}`);
+    setPostUrl(`${window.location.origin}/post/${locationId}?src=qr`);
   }, [locationId]);
 
   useEffect(() => {
