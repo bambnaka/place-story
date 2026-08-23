@@ -1,7 +1,7 @@
 import { supabase, POSTS_TABLE } from "./supabase";
 import type { Post } from "@/types/post";
 
-const EXPIRES_IN_HOURS = 24;
+const EXPIRES_IN_HOURS = 1;
 
 export async function createPost(
   locationId: string,

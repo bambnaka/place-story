@@ -8,7 +8,7 @@ export default function Home() {
         <code className="mx-1 rounded bg-gray-200 px-1.5 py-0.5 text-xs">/post/[locationId]</code>
         へアクセスして投稿し、
         <code className="mx-1 rounded bg-gray-200 px-1.5 py-0.5 text-xs">/screen/[locationId]</code>
-        のモニターに24時間限定で表示されます。
+        のモニターに1時間限定で表示されます。
       </p>
       <p className="text-xs text-gray-400">
         管理画面は <code className="rounded bg-gray-200 px-1.5 py-0.5">/admin</code> です。
