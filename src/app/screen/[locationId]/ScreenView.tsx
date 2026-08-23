@@ -7,9 +7,9 @@ import { fetchScreenPosts, fetchParticipantCount } from "@/lib/posts";
 import type { Post } from "@/types/post";
 
 const FETCH_INTERVAL_MS = 30_000;
-const ROTATE_INTERVAL_MS = 10_000;
-const CARD_WIDTH_VW = 76;
-const CARD_GAP_VW = 3;
+const ROTATE_INTERVAL_MS = 12_000;
+const CARD_WIDTH_VW = 86;
+const CARD_GAP_VW = 2;
 const CARD_STEP_VW = CARD_WIDTH_VW + CARD_GAP_VW;
 
 function formatElapsed(createdAt: string): string {
@@ -101,15 +101,6 @@ export default function ScreenView({ locationId }: { locationId: string }) {
 
   return (
     <main className="relative flex min-h-dvh flex-col items-center justify-center overflow-hidden bg-black text-white">
-      <div className="absolute top-6 left-6 text-sm tracking-wide text-white/50">
-        PLACE STORY · {locationId}
-        {participantCount !== null && (
-          <span className="ml-2 rounded-full bg-white/10 px-2.5 py-0.5 text-xs">
-            参加人数 {participantCount}人
-          </span>
-        )}
-      </div>
-
       {isLoading && (
         <p className="text-white/60">読み込み中...</p>
       )}
@@ -129,9 +120,9 @@ export default function ScreenView({ locationId }: { locationId: string }) {
 
       {!isLoading && activePost && (
         <div className="flex w-full flex-col items-center gap-6">
-          <div className="relative h-[65dvh] w-full overflow-hidden">
+          <div className="relative h-[78dvh] w-full overflow-hidden">
             <div
-              className="absolute top-0 flex h-full items-center gap-x-[3vw] transition-transform duration-700 ease-out"
+              className="absolute top-0 flex h-full items-center gap-x-[2vw] transition-transform duration-[1300ms] ease-in-out"
               style={{
                 left: "50%",
                 transform: `translateX(-${activeIndex * CARD_STEP_VW + CARD_WIDTH_VW / 2}vw)`,
@@ -140,11 +131,11 @@ export default function ScreenView({ locationId }: { locationId: string }) {
               {posts.map((post, i) => (
                 <div
                   key={post.id}
-                  className="flex h-full shrink-0 items-center justify-center transition-all duration-700 ease-out"
+                  className="flex h-full shrink-0 items-center justify-center transition-all duration-[1300ms] ease-in-out"
                   style={{
                     width: `${CARD_WIDTH_VW}vw`,
                     opacity: i === activeIndex ? 1 : 0.35,
-                    transform: i === activeIndex ? "scale(1)" : "scale(0.86)",
+                    transform: i === activeIndex ? "scale(1)" : "scale(0.9)",
                   }}
                 >
                   {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -184,9 +175,15 @@ export default function ScreenView({ locationId }: { locationId: string }) {
       )}
 
       {postUrl && (
-        <div className="absolute bottom-6 right-6 flex flex-col items-center gap-2 rounded-2xl bg-white p-3 shadow-xl">
-          <QRCodeSVG value={postUrl} size={112} />
-          <p className="text-[11px] font-medium text-gray-700">投稿はこちらから</p>
+        <div className="absolute bottom-8 right-8 flex flex-col items-center gap-3 rounded-3xl bg-white px-8 py-6 shadow-2xl">
+          <p className="text-xl font-bold tracking-wide text-gray-900">PLACE STORY</p>
+          {participantCount !== null && (
+            <p className="rounded-full bg-gray-100 px-3 py-1 text-xs font-medium text-gray-600">
+              参加人数 {participantCount}人
+            </p>
+          )}
+          <QRCodeSVG value={postUrl} size={176} />
+          <p className="text-sm font-medium text-gray-700">QRコードを読み取って投稿</p>
         </div>
       )}
     </main>
