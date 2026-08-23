@@ -74,6 +74,23 @@ export async function fetchAdminPosts(locationId?: string): Promise<Post[]> {
   return (data ?? []) as Post[];
 }
 
+/**
+ * その場所への累計参加人数(投稿数)を取得する。
+ * is_visible や expires_at に関わらず、これまでに投稿された総数を数える。
+ */
+export async function fetchParticipantCount(locationId: string): Promise<number> {
+  const { count, error } = await supabase
+    .from(POSTS_TABLE)
+    .select("*", { count: "exact", head: true })
+    .eq("location_id", locationId);
+
+  if (error) {
+    throw new Error(`参加人数の取得に失敗しました: ${error.message}`);
+  }
+
+  return count ?? 0;
+}
+
 export async function setPostVisibility(id: string, isVisible: boolean): Promise<void> {
   const { error } = await supabase
     .from(POSTS_TABLE)

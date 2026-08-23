@@ -116,6 +116,21 @@ create policy "Allow public read place-story-images"
 
 アプリ内では `POST_IMAGES_BUCKET`(`src/lib/supabase.ts`)としてバケット名 `place-story-images` を参照しています。バケット名を変更する場合はこの定数も合わせて変更してください。
 
+## Realtime(モニターの即時反映)の有効化
+
+モニター画面は投稿を検知すると即座に表示を更新します(30秒ごとのポーリングは、これを取りこぼした場合の保険として併用しています)。この即時反映には、Supabaseの **Realtime** 機能をテーブルごとに有効化する必要があります。
+
+1. Supabase ダッシュボード → **Database** → **Replication**
+2. `place_story_posts` テーブルのトグルを **ON** にする
+
+または **SQL Editor** で以下を実行しても同じです。
+
+```sql
+alter publication supabase_realtime add table place_story_posts;
+```
+
+これを設定しないと、モニター画面は30秒ごとのポーリングでのみ更新されます(機能自体は動きますが、反映が最大30秒遅れます)。
+
 ## ローカル起動方法
 
 ```bash
@@ -135,7 +150,7 @@ npm run dev
 - Vercel の **Project Settings → Environment Variables** に `NEXT_PUBLIC_SUPABASE_URL` と `NEXT_PUBLIC_SUPABASE_ANON_KEY` を設定してください(Production / Preview 両方推奨)。
 - 環境変数はビルド時にクライアントバンドルへ埋め込まれます。値を変更した場合は再デプロイが必要です。
 - 画像は `<img>` タグでそのまま表示しており、`next/image` のリモート画像許可設定は不要です。
-- モニター画面(`/screen/[locationId]`)は30秒ごとに投稿を再取得し、8秒ごとに表示を切り替えます。常時表示するデバイス(サイネージ等)では、ブラウザのスリープ・スクリーンセーバーを無効化してください。
+- モニター画面(`/screen/[locationId]`)はRealtimeで新しい投稿を即座に検知し、30秒ごとの再取得も保険として併用しつつ、10秒ごとに表示を切り替えます。常時表示するデバイス(サイネージ等)では、ブラウザのスリープ・スクリーンセーバーを無効化してください。
 - `/admin` に認証がないため、URLを知っていれば誰でもアクセスできます。研究用プロトタイプとしての利用に留め、公開範囲に注意してください。
 
 ## モニターで表示するURL例
@@ -175,6 +190,8 @@ https://your-app.vercel.app/post/cafe-tanaka
 - [ ] 画像が Supabase Storage に保存される
 - [ ] 投稿が `place_story_posts` テーブルに保存される
 - [ ] モニター画面に24時間以内の投稿が表示される
-- [ ] 投稿が一定時間(8秒)ごとに切り替わる
+- [ ] 投稿が一定時間(10秒)ごとに切り替わる
+- [ ] 新しい投稿がモニターに即座に(リアルタイムで)反映される
+- [ ] 累計参加人数がモニター画面に表示される
 - [ ] モニター画面からQRコードを読み取って投稿ページに遷移できる
 - [ ] 管理画面から不適切な投稿を非表示にできる

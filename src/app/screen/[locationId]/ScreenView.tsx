@@ -2,11 +2,12 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { QRCodeSVG } from "qrcode.react";
-import { fetchScreenPosts } from "@/lib/posts";
+import { supabase, POSTS_TABLE } from "@/lib/supabase";
+import { fetchScreenPosts, fetchParticipantCount } from "@/lib/posts";
 import type { Post } from "@/types/post";
 
 const FETCH_INTERVAL_MS = 30_000;
-const ROTATE_INTERVAL_MS = 8_000;
+const ROTATE_INTERVAL_MS = 10_000;
 
 function formatElapsed(createdAt: string): string {
   const diffMs = Date.now() - new Date(createdAt).getTime();
@@ -19,6 +20,7 @@ function formatElapsed(createdAt: string): string {
 
 export default function ScreenView({ locationId }: { locationId: string }) {
   const [posts, setPosts] = useState<Post[]>([]);
+  const [participantCount, setParticipantCount] = useState<number | null>(null);
   const [activeIndex, setActiveIndex] = useState(0);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -26,8 +28,12 @@ export default function ScreenView({ locationId }: { locationId: string }) {
 
   const load = useCallback(async () => {
     try {
-      const data = await fetchScreenPosts(locationId);
+      const [data, count] = await Promise.all([
+        fetchScreenPosts(locationId),
+        fetchParticipantCount(locationId),
+      ]);
       setPosts(data);
+      setParticipantCount(count);
       setErrorMessage(null);
       setActiveIndex((current) => (data.length === 0 ? 0 : current % data.length));
     } catch (err) {
@@ -49,6 +55,28 @@ export default function ScreenView({ locationId }: { locationId: string }) {
     const fetchTimer = setInterval(load, FETCH_INTERVAL_MS);
     return () => clearInterval(fetchTimer);
   }, [load]);
+
+  useEffect(() => {
+    const channel = supabase
+      .channel(`place_story_posts_${locationId}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: POSTS_TABLE,
+          filter: `location_id=eq.${locationId}`,
+        },
+        () => {
+          load();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [locationId, load]);
 
   const postsRef = useRef(posts);
   useEffect(() => {
@@ -72,6 +100,11 @@ export default function ScreenView({ locationId }: { locationId: string }) {
     <main className="relative flex min-h-dvh flex-col items-center justify-center overflow-hidden bg-black text-white">
       <div className="absolute top-6 left-6 text-sm tracking-wide text-white/50">
         PLACE STORY · {locationId}
+        {participantCount !== null && (
+          <span className="ml-2 rounded-full bg-white/10 px-2.5 py-0.5 text-xs">
+            参加人数 {participantCount}人
+          </span>
+        )}
       </div>
 
       {isLoading && (
