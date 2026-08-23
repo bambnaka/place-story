@@ -75,6 +75,7 @@ create table place_story_posts (
   image_path text not null,
   comment text,
   nickname text,
+  participant_id uuid,
   created_at timestamp with time zone default now(),
   expires_at timestamp with time zone not null,
   is_visible boolean default true
@@ -91,7 +92,14 @@ grant select, insert, update on table public.place_story_posts to anon;
 - `image_url`: モニターやブラウザから表示するための公開URL(Supabase Storageの `getPublicUrl` から取得)
 - `image_path`: Storageバケット内の実ファイルパス(`{locationId}/{uuid}.{拡張子}`)。将来、投稿削除時にストレージからも画像を消す場合などに使う
 - `nickname`: 投稿者が任意で入力できるニックネーム
+- `participant_id`: 投稿した端末(ブラウザ)を識別するための匿名ID。ログイン機能がないため、`localStorage`に保存したUUIDを使って「同じ端末からの投稿は同一参加者」として扱い、参加人数の重複カウントを防ぐ(詳細は後述)
 - `expires_at`: アプリ側で投稿作成時に「作成時刻 + 24時間」を計算して明示的に保存(テーブル側にデフォルト値は設定していません)
+
+既存のテーブルに後から列を追加する場合は、以下だけ実行すれば大丈夫です。
+
+```sql
+alter table place_story_posts add column participant_id uuid;
+```
 
 > **注意**: `select` / `update` を anon ロールに広く許可しているのは、このプロトタイプが管理画面用の認証を持たないためです。本番運用する場合は Supabase Auth を導入し、管理系の操作は認証済みユーザーのみに制限してください。
 
@@ -130,6 +138,26 @@ alter publication supabase_realtime add table place_story_posts;
 ```
 
 これを設定しないと、モニター画面は30秒ごとのポーリングでのみ更新されます(機能自体は動きますが、反映が最大30秒遅れます)。
+
+## モニターのカルーセル表示
+
+モニター画面は投稿を横一列に並べたカルーセルで表示します。中央の1枚が画面いっぱいに大きく表示され、その前後の投稿は画面の左右の端からのぞくように薄く表示されます。10秒ごとに次の投稿へ自動で切り替わります。
+
+## 参加人数のカウント方法
+
+画面左上の「参加人数」は、**同じ端末からの複数投稿を1人として数えた**人数です。
+
+- 投稿ページを開いたブラウザに、ログイン不要の匿名ID(UUID)を `localStorage` に保存します(`src/lib/participant.ts`)
+- 投稿時にこのIDを `participant_id` として一緒に保存します
+- モニターは `participant_id` の重複を除いた数を「参加人数」として表示します
+
+そのため、同じ人が同じ端末・同じブラウザで何度QRコードを読み取って投稿しても、参加人数は1人のまま増えません。ただし以下の場合は別人として数えられます(匿名IDによる簡易的な識別のため、完全ではない点にご注意ください)。
+
+- ブラウザのデータ(localStorage)を消去した場合
+- 別のブラウザ・別の端末から投稿した場合
+- シークレット/プライベートブラウジングモードで投稿した場合(タブを閉じるとIDが消える)
+
+なお、この機能を追加する前に作成された投稿には `participant_id` が入っていないため、それらは投稿ごとに1人としてカウントされます。
 
 ## ローカル起動方法
 

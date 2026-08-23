@@ -8,6 +8,9 @@ import type { Post } from "@/types/post";
 
 const FETCH_INTERVAL_MS = 30_000;
 const ROTATE_INTERVAL_MS = 10_000;
+const CARD_WIDTH_VW = 76;
+const CARD_GAP_VW = 3;
+const CARD_STEP_VW = CARD_WIDTH_VW + CARD_GAP_VW;
 
 function formatElapsed(createdAt: string): string {
   const diffMs = Date.now() - new Date(createdAt).getTime();
@@ -125,15 +128,37 @@ export default function ScreenView({ locationId }: { locationId: string }) {
       )}
 
       {!isLoading && activePost && (
-        <div className="flex w-full max-w-3xl flex-col items-center gap-6 px-6">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            key={activePost.id}
-            src={activePost.image_url}
-            alt={activePost.comment ?? "投稿画像"}
-            className="max-h-[65dvh] w-full rounded-2xl object-contain shadow-2xl"
-          />
-          <div className="flex w-full flex-col items-center gap-1 text-center">
+        <div className="flex w-full flex-col items-center gap-6">
+          <div className="relative h-[65dvh] w-full overflow-hidden">
+            <div
+              className="absolute top-0 flex h-full items-center gap-x-[3vw] transition-transform duration-700 ease-out"
+              style={{
+                left: "50%",
+                transform: `translateX(-${activeIndex * CARD_STEP_VW + CARD_WIDTH_VW / 2}vw)`,
+              }}
+            >
+              {posts.map((post, i) => (
+                <div
+                  key={post.id}
+                  className="flex h-full shrink-0 items-center justify-center transition-all duration-700 ease-out"
+                  style={{
+                    width: `${CARD_WIDTH_VW}vw`,
+                    opacity: i === activeIndex ? 1 : 0.35,
+                    transform: i === activeIndex ? "scale(1)" : "scale(0.86)",
+                  }}
+                >
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={post.image_url}
+                    alt={post.comment ?? "投稿画像"}
+                    className="max-h-full max-w-full rounded-2xl object-contain shadow-2xl"
+                  />
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="flex w-full max-w-2xl flex-col items-center gap-1 px-6 text-center">
             {activePost.comment && (
               <p className="text-xl font-medium">{activePost.comment}</p>
             )}
@@ -142,6 +167,7 @@ export default function ScreenView({ locationId }: { locationId: string }) {
               {formatElapsed(activePost.created_at)}
             </p>
           </div>
+
           {posts.length > 1 && (
             <div className="flex gap-1.5">
               {posts.map((p, i) => (

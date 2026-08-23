@@ -8,7 +8,8 @@ export async function createPost(
   imageUrl: string,
   imagePath: string,
   comment: string,
-  nickname: string
+  nickname: string,
+  participantId: string
 ): Promise<Post> {
   const now = new Date();
   const expiresAt = new Date(now.getTime() + EXPIRES_IN_HOURS * 60 * 60 * 1000);
@@ -21,6 +22,7 @@ export async function createPost(
       image_path: imagePath,
       comment: comment.trim() || null,
       nickname: nickname.trim() || null,
+      participant_id: participantId || null,
       is_visible: true,
       expires_at: expiresAt.toISOString(),
     })
@@ -75,20 +77,26 @@ export async function fetchAdminPosts(locationId?: string): Promise<Post[]> {
 }
 
 /**
- * その場所への累計参加人数(投稿数)を取得する。
- * is_visible や expires_at に関わらず、これまでに投稿された総数を数える。
+ * その場所への累計参加人数を取得する。
+ * 同じ端末(participant_id)からの複数投稿は1人として数える。
+ * is_visible や expires_at に関わらず、これまでの参加者数を数える。
+ * participant_id が無い古いデータ(移行前の投稿)は、投稿ごとに1人としてカウントする。
  */
 export async function fetchParticipantCount(locationId: string): Promise<number> {
-  const { count, error } = await supabase
+  const { data, error } = await supabase
     .from(POSTS_TABLE)
-    .select("*", { count: "exact", head: true })
+    .select("id, participant_id")
     .eq("location_id", locationId);
 
   if (error) {
     throw new Error(`参加人数の取得に失敗しました: ${error.message}`);
   }
 
-  return count ?? 0;
+  const uniqueParticipants = new Set(
+    (data ?? []).map((row) => row.participant_id ?? `__row_${row.id}`)
+  );
+
+  return uniqueParticipants.size;
 }
 
 export async function setPostVisibility(id: string, isVisible: boolean): Promise<void> {

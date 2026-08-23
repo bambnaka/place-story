@@ -3,6 +3,7 @@
 import { useRef, useState } from "react";
 import { uploadPostImage, ImageUploadError } from "@/lib/uploadImage";
 import { createPost } from "@/lib/posts";
+import { getParticipantId } from "@/lib/participant";
 
 type Status = "idle" | "uploading" | "done" | "error";
 
@@ -52,7 +53,8 @@ export default function PostForm({ locationId }: { locationId: string }) {
 
     try {
       const { url, path } = await uploadPostImage(locationId, file);
-      await createPost(locationId, url, path, comment, nickname);
+      const participantId = getParticipantId();
+      await createPost(locationId, url, path, comment, nickname, participantId);
       setStatus("done");
     } catch (err) {
       setStatus("error");
