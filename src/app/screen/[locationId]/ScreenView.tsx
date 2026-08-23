@@ -8,7 +8,7 @@ import type { Post } from "@/types/post";
 
 const FETCH_INTERVAL_MS = 30_000;
 const ROTATE_INTERVAL_MS = 12_000;
-const CARD_WIDTH_VW = 82;
+const CARD_WIDTH_VW = 88;
 const CARD_GAP_VW = 2;
 const CARD_STEP_VW = CARD_WIDTH_VW + CARD_GAP_VW;
 
@@ -142,11 +142,7 @@ export default function ScreenView({ locationId }: { locationId: string }) {
                   <img
                     src={post.image_url}
                     alt={post.comment ?? "投稿画像"}
-                    className={
-                      i === activeIndex
-                        ? "max-h-full max-w-full rounded-2xl object-contain shadow-2xl"
-                        : "h-full w-full rounded-2xl object-cover shadow-2xl"
-                    }
+                    className="h-full w-full rounded-2xl object-cover shadow-2xl"
                   />
                 </div>
               ))}
