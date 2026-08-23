@@ -152,6 +152,25 @@ create policy "Allow public read place-story-images"
 
 アプリ内では `POST_IMAGES_BUCKET`(`src/lib/supabase.ts`)としてバケット名 `place-story-images` を参照しています。バケット名を変更する場合はこの定数も合わせて変更してください。
 
+## 管理画面からの完全削除機能を使うためのSQL
+
+管理画面の「履歴を削除」ボタンは、投稿・QR読み取り履歴・Storage上の画像を完全に削除します(取り消せません)。これを使うには、通常の select/insert/update に加えて **delete 権限** を追加で付与する必要があります。
+
+```sql
+create policy "誰でも削除できる_ps" on place_story_posts for delete using (true);
+grant delete on table public.place_story_posts to anon;
+
+create policy "誰でも削除できる_scans" on place_story_scans for delete using (true);
+grant delete on table public.place_story_scans to anon;
+
+create policy "Allow public delete place-story-images"
+  on storage.objects for delete
+  to anon
+  using (bucket_id = 'place-story-images');
+```
+
+このSQLを実行しない場合、削除ボタンを押すとエラーになりますが、それ以外の機能(投稿・モニター表示・非表示化など)には一切影響しません。
+
 ## Realtime(モニターの即時反映)の有効化
 
 モニター画面は投稿を検知すると即座に表示を更新します(30秒ごとのポーリングは、これを取りこぼした場合の保険として併用しています)。この即時反映には、Supabaseの **Realtime** 機能をテーブルごとに有効化する必要があります。
@@ -254,6 +273,16 @@ https://your-app.vercel.app/post/cafe-tanaka
 - **QR読み取り回数 / 総投稿数 / 投稿率**: 投稿ページが開かれた回数(≒QRコードが読み取られた回数)と、実際に投稿された数、その割合。`place_story_scans` テーブルが無い場合は `-` 表示になります
 - **参加人数 / 平均投稿回数/人 / 複数回投稿した人**: `participant_id` で重複を除いた集計
 - **参加者ごとの投稿回数の表**: ニックネーム・投稿した場所・投稿回数・初回〜最終投稿の時間帯を一覧表示。投稿が2件以上ある参加者は「全◯件を見る」から、その人の全投稿時刻の履歴を展開して確認できます
+
+### 履歴の完全削除
+
+「実験用サマリー」の右上にある「〇〇の履歴を全削除」ボタンから、投稿・QR読み取り履歴・Storage上の画像を**完全に削除**できます。
+
+- `location_id` で絞り込んでいる場合は、その場所のデータだけが削除されます
+- 絞り込んでいない場合は、**全ての場所のデータ**が削除されます
+- 確認ダイアログが出るので、内容をよく確認してから実行してください
+- 一度削除すると元に戻せません
+- 使うには前述の delete 権限のSQLを実行しておく必要があります
 
 ## 動作確認の優先事項(研究プロトタイプとして)
 

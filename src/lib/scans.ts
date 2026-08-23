@@ -35,3 +35,17 @@ export async function fetchScanCount(locationId?: string): Promise<number> {
 
   return count;
 }
+
+/**
+ * 読み取り履歴を完全に削除する。取り消せない操作。
+ * locationIdを指定しない場合は全場所の履歴を削除する。
+ * テーブルが無い場合はそもそも消すものが無いので、失敗しても無視する。
+ */
+export async function deleteAllScans(locationId?: string): Promise<void> {
+  try {
+    const query = supabase.from(SCANS_TABLE).delete();
+    await (locationId ? query.eq("location_id", locationId) : query);
+  } catch {
+    // scansテーブルが無い環境でも投稿削除自体は成功させたいので無視する
+  }
+}

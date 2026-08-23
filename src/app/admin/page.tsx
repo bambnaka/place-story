@@ -1,8 +1,8 @@
 "use client";
 
 import { Fragment, useCallback, useEffect, useMemo, useState } from "react";
-import { fetchAdminPosts, setPostVisibility } from "@/lib/posts";
-import { fetchScanCount } from "@/lib/scans";
+import { deleteAllPosts, fetchAdminPosts, setPostVisibility } from "@/lib/posts";
+import { deleteAllScans, fetchScanCount } from "@/lib/scans";
 import { summarizeParticipants } from "@/lib/participantSummary";
 import type { Post } from "@/types/post";
 
@@ -30,6 +30,7 @@ export default function AdminPage() {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [pendingId, setPendingId] = useState<string | null>(null);
   const [expandedKeys, setExpandedKeys] = useState<Set<string>>(new Set());
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const load = useCallback(async (locationId: string) => {
     setIsLoading(true);
@@ -79,6 +80,28 @@ export default function AdminPage() {
   const repeatParticipants = participantSummary.filter((p) => p.postCount > 1).length;
   const conversionRate =
     scanCount && scanCount > 0 ? Math.min((totalPosts / scanCount) * 100, 100) : null;
+
+  async function handleDeleteAll() {
+    const scope = locationFilter.trim();
+    const scopeLabel = scope ? `「${scope}」の` : "全ての場所の";
+    const confirmed = window.confirm(
+      `${scopeLabel}履歴を完全に削除します。\n投稿 ${totalPosts}件・QR読み取り履歴 ${
+        scanCount ?? 0
+      }件が対象で、画像もStorageから削除されます。\n\nこの操作は取り消せません。本当によろしいですか?`
+    );
+    if (!confirmed) return;
+
+    setIsDeleting(true);
+    try {
+      await deleteAllPosts(scope || undefined);
+      await deleteAllScans(scope || undefined);
+      await load(locationFilter);
+    } catch (err) {
+      setErrorMessage(err instanceof Error ? err.message : "削除に失敗しました。");
+    } finally {
+      setIsDeleting(false);
+    }
+  }
 
   async function toggleVisibility(post: Post) {
     setPendingId(post.id);
@@ -139,17 +162,33 @@ export default function AdminPage() {
 
         {!isLoading && (posts.length > 0 || (scanCount ?? 0) > 0) && (
           <section className="mt-6">
-            <h2 className="text-sm font-bold text-gray-900">実験用サマリー</h2>
-            <p className="mt-1 text-xs text-gray-500">
-              非表示・期限切れの投稿も含めた、これまでの参加記録です
-              {locationFilter.trim() && (
-                <>
-                  (location_id: <span className="font-medium">{locationFilter.trim()}</span>{" "}
-                  で絞り込み中)
-                </>
-              )}
-              。
-            </p>
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <div>
+                <h2 className="text-sm font-bold text-gray-900">実験用サマリー</h2>
+                <p className="mt-1 text-xs text-gray-500">
+                  非表示・期限切れの投稿も含めた、これまでの参加記録です
+                  {locationFilter.trim() && (
+                    <>
+                      (location_id: <span className="font-medium">{locationFilter.trim()}</span>{" "}
+                      で絞り込み中)
+                    </>
+                  )}
+                  。
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={handleDeleteAll}
+                disabled={isDeleting}
+                className="shrink-0 rounded-full border border-red-200 px-4 py-2 text-xs font-medium text-red-600 hover:bg-red-50 disabled:opacity-50"
+              >
+                {isDeleting
+                  ? "削除中..."
+                  : locationFilter.trim()
+                    ? `「${locationFilter.trim()}」の履歴を全削除`
+                    : "全ての履歴を削除"}
+              </button>
+            </div>
 
             <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
               <div className="rounded-xl bg-white p-4 shadow-sm">

@@ -1,4 +1,4 @@
-import { supabase, POSTS_TABLE } from "./supabase";
+import { supabase, POSTS_TABLE, POST_IMAGES_BUCKET } from "./supabase";
 import type { Post } from "@/types/post";
 
 const EXPIRES_IN_HOURS = 1;
@@ -97,6 +97,35 @@ export async function fetchParticipantCount(locationId: string): Promise<number>
   );
 
   return uniqueParticipants.size;
+}
+
+/**
+ * 投稿(と紐づくStorage上の画像)を完全に削除する。取り消せない操作。
+ * locationIdを指定しない場合は全場所の投稿を削除する。
+ */
+export async function deleteAllPosts(locationId?: string): Promise<Post[]> {
+  const query = supabase.from(POSTS_TABLE).delete().select();
+  const { data, error } = await (locationId
+    ? query.eq("location_id", locationId)
+    : query);
+
+  if (error) {
+    throw new Error(`投稿の削除に失敗しました: ${error.message}`);
+  }
+
+  const deleted = (data ?? []) as Post[];
+  const paths = deleted.map((post) => post.image_path).filter(Boolean);
+
+  if (paths.length > 0) {
+    const { error: storageError } = await supabase.storage
+      .from(POST_IMAGES_BUCKET)
+      .remove(paths);
+    if (storageError) {
+      throw new Error(`投稿データは削除しましたが、画像の削除に失敗しました: ${storageError.message}`);
+    }
+  }
+
+  return deleted;
 }
 
 export async function setPostVisibility(id: string, isVisible: boolean): Promise<void> {
