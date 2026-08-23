@@ -110,6 +110,10 @@ alter table place_story_posts add column participant_id uuid;
 
 モニターに表示されるQRコードには `?src=qr` という目印が付いたURL(例: `/post/cafe-tanaka?src=qr`)が埋め込まれています。この目印が無い状態でページを開いた場合(URLを直接入力・リンクを共有された・動作確認のためブラウザで開いた、など)はカウントされません。これはあくまで「URLにその目印が付いていたか」による簡易的な判定であり、実際にスマホのカメラで読み取ったことを技術的に証明するものではない点にご注意ください。
 
+記録した直後に `history.replaceState` でURLから `?src=qr` を取り除いているため、同じ端末で投稿ページをリロードしても再カウントされません(目印はその1回のアクセスでしか残らない仕組みです)。
+
+モニター画面はブラウザタブを開いたときに一度だけQRコードの中身を決めます。機能追加・修正のたびに、常時表示しているモニターのタブは**手動でリロード**しないと新しいQRコードに切り替わらない点にご注意ください。
+
 ```sql
 create table place_story_scans (
   id uuid primary key default gen_random_uuid(),

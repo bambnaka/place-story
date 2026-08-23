@@ -40,6 +40,8 @@ export default function PostForm({
   useEffect(() => {
     if (isFromQr) {
       recordScan(locationId, getParticipantId());
+      // リロードで再カウントされないよう、記録した直後にURLから目印を消す
+      window.history.replaceState(null, "", `/post/${locationId}`);
     }
   }, [locationId, isFromQr]);
 
