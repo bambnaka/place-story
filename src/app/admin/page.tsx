@@ -1,7 +1,8 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { fetchAdminPosts, setPostVisibility } from "@/lib/posts";
+import { summarizeParticipants } from "@/lib/participantSummary";
 import type { Post } from "@/types/post";
 
 function formatDateTime(iso: string): string {
@@ -45,6 +46,13 @@ export default function AdminPage() {
     load(locationFilter);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  const participantSummary = useMemo(() => summarizeParticipants(posts), [posts]);
+  const totalPosts = posts.length;
+  const totalParticipants = participantSummary.length;
+  const avgPostsPerParticipant =
+    totalParticipants === 0 ? 0 : totalPosts / totalParticipants;
+  const repeatParticipants = participantSummary.filter((p) => p.postCount > 1).length;
 
   async function toggleVisibility(post: Post) {
     setPendingId(post.id);
@@ -103,12 +111,96 @@ export default function AdminPage() {
           </p>
         )}
 
+        {!isLoading && posts.length > 0 && (
+          <section className="mt-6">
+            <h2 className="text-sm font-bold text-gray-900">実験用サマリー</h2>
+            <p className="mt-1 text-xs text-gray-500">
+              非表示・期限切れの投稿も含めた、これまでの参加記録です
+              {locationFilter.trim() && (
+                <>
+                  (location_id: <span className="font-medium">{locationFilter.trim()}</span>{" "}
+                  で絞り込み中)
+                </>
+              )}
+              。
+            </p>
+
+            <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-4">
+              <div className="rounded-xl bg-white p-4 shadow-sm">
+                <p className="text-xs text-gray-500">総投稿数</p>
+                <p className="mt-1 text-2xl font-bold text-gray-900">{totalPosts}</p>
+              </div>
+              <div className="rounded-xl bg-white p-4 shadow-sm">
+                <p className="text-xs text-gray-500">参加人数</p>
+                <p className="mt-1 text-2xl font-bold text-gray-900">{totalParticipants}</p>
+              </div>
+              <div className="rounded-xl bg-white p-4 shadow-sm">
+                <p className="text-xs text-gray-500">平均投稿回数/人</p>
+                <p className="mt-1 text-2xl font-bold text-gray-900">
+                  {avgPostsPerParticipant.toFixed(1)}
+                </p>
+              </div>
+              <div className="rounded-xl bg-white p-4 shadow-sm">
+                <p className="text-xs text-gray-500">複数回投稿した人</p>
+                <p className="mt-1 text-2xl font-bold text-gray-900">{repeatParticipants}</p>
+              </div>
+            </div>
+
+            <div className="mt-4 overflow-x-auto rounded-xl bg-white shadow-sm">
+              <table className="w-full min-w-[560px] text-left text-sm">
+                <thead>
+                  <tr className="border-b border-gray-100 text-xs text-gray-500">
+                    <th className="px-4 py-3 font-medium">#</th>
+                    <th className="px-4 py-3 font-medium">ニックネーム</th>
+                    <th className="px-4 py-3 font-medium">場所</th>
+                    <th className="px-4 py-3 font-medium">投稿回数</th>
+                    <th className="px-4 py-3 font-medium">初回投稿</th>
+                    <th className="px-4 py-3 font-medium">最終投稿</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {participantSummary.map((row, i) => (
+                    <tr key={row.key} className="border-b border-gray-50 last:border-0">
+                      <td className="px-4 py-3 text-gray-400">{i + 1}</td>
+                      <td className="px-4 py-3 text-gray-800">
+                        {row.nicknames.length > 0 ? row.nicknames.join("・") : "(匿名)"}
+                        {row.isLegacy && (
+                          <span className="ml-1.5 rounded-full bg-gray-100 px-1.5 py-0.5 text-[10px] text-gray-400">
+                            旧データ
+                          </span>
+                        )}
+                      </td>
+                      <td className="px-4 py-3 text-gray-500">
+                        {row.locationIds.join("・")}
+                      </td>
+                      <td className="px-4 py-3 font-medium text-gray-900">{row.postCount}</td>
+                      <td className="px-4 py-3 text-gray-500">
+                        {formatDateTime(row.firstPostAt)}
+                      </td>
+                      <td className="px-4 py-3 text-gray-500">
+                        {formatDateTime(row.lastPostAt)}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            <p className="mt-2 text-xs text-gray-400">
+              「参加人数」は、同じ端末(ブラウザ)からの複数投稿を1人としてまとめた人数です。「旧データ」は参加者識別機能を追加する前の投稿で、投稿ごとに1人として数えています。
+            </p>
+          </section>
+        )}
+
+        {!isLoading && posts.length > 0 && (
+          <h2 className="mt-8 text-sm font-bold text-gray-900">投稿一覧</h2>
+        )}
+
         {isLoading ? (
           <p className="mt-8 text-sm text-gray-500">読み込み中...</p>
         ) : posts.length === 0 ? (
           <p className="mt-8 text-sm text-gray-500">投稿がありません。</p>
         ) : (
-          <ul className="mt-6 flex flex-col gap-3">
+          <ul className="mt-3 flex flex-col gap-3">
             {posts.map((post) => {
               const status = statusOf(post);
               return (
