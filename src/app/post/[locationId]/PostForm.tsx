@@ -144,7 +144,7 @@ export default function PostForm({
         </div>
         <h2 className="text-xl font-bold text-gray-900">投稿ありがとうございました</h2>
         <p className="text-sm text-gray-600">
-          この場所のモニターに、あなたの投稿が1時間表示されます。
+          この場所のモニターに、あなたの投稿が24時間表示されます。
         </p>
         {previewUrl && (
           // eslint-disable-next-line @next/next/no-img-element
