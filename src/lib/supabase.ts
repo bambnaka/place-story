@@ -13,3 +13,4 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
 export const POSTS_TABLE = "place_story_posts";
 export const POST_IMAGES_BUCKET = "place-story-images";
+export const SCANS_TABLE = "place_story_scans";

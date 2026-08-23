@@ -1,7 +1,8 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { Fragment, useCallback, useEffect, useMemo, useState } from "react";
 import { fetchAdminPosts, setPostVisibility } from "@/lib/posts";
+import { fetchScanCount } from "@/lib/scans";
 import { summarizeParticipants } from "@/lib/participantSummary";
 import type { Post } from "@/types/post";
 
@@ -23,23 +24,46 @@ function statusOf(post: Post): { label: string; className: string } {
 
 export default function AdminPage() {
   const [posts, setPosts] = useState<Post[]>([]);
+  const [scanCount, setScanCount] = useState<number | null>(null);
   const [locationFilter, setLocationFilter] = useState("");
   const [isLoading, setIsLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [pendingId, setPendingId] = useState<string | null>(null);
+  const [expandedKeys, setExpandedKeys] = useState<Set<string>>(new Set());
 
   const load = useCallback(async (locationId: string) => {
     setIsLoading(true);
     try {
-      const data = await fetchAdminPosts(locationId.trim() || undefined);
-      setPosts(data);
+      const trimmed = locationId.trim() || undefined;
+      const postsData = await fetchAdminPosts(trimmed);
+      setPosts(postsData);
       setErrorMessage(null);
+
+      // place_story_scans テーブルが未作成でも投稿一覧の表示は続けたいので、
+      // 読み取り回数の取得失敗はこのブロックの外に影響させない
+      try {
+        setScanCount(await fetchScanCount(trimmed));
+      } catch {
+        setScanCount(null);
+      }
     } catch (err) {
       setErrorMessage(err instanceof Error ? err.message : "投稿の取得に失敗しました。");
     } finally {
       setIsLoading(false);
     }
   }, []);
+
+  function toggleExpanded(key: string) {
+    setExpandedKeys((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) {
+        next.delete(key);
+      } else {
+        next.add(key);
+      }
+      return next;
+    });
+  }
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -53,6 +77,8 @@ export default function AdminPage() {
   const avgPostsPerParticipant =
     totalParticipants === 0 ? 0 : totalPosts / totalParticipants;
   const repeatParticipants = participantSummary.filter((p) => p.postCount > 1).length;
+  const conversionRate =
+    scanCount && scanCount > 0 ? Math.min((totalPosts / scanCount) * 100, 100) : null;
 
   async function toggleVisibility(post: Post) {
     setPendingId(post.id);
@@ -111,7 +137,7 @@ export default function AdminPage() {
           </p>
         )}
 
-        {!isLoading && posts.length > 0 && (
+        {!isLoading && (posts.length > 0 || (scanCount ?? 0) > 0) && (
           <section className="mt-6">
             <h2 className="text-sm font-bold text-gray-900">実験用サマリー</h2>
             <p className="mt-1 text-xs text-gray-500">
@@ -125,10 +151,22 @@ export default function AdminPage() {
               。
             </p>
 
-            <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-4">
+            <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
+              <div className="rounded-xl bg-white p-4 shadow-sm">
+                <p className="text-xs text-gray-500">QR読み取り回数</p>
+                <p className="mt-1 text-2xl font-bold text-gray-900">
+                  {scanCount ?? "-"}
+                </p>
+              </div>
               <div className="rounded-xl bg-white p-4 shadow-sm">
                 <p className="text-xs text-gray-500">総投稿数</p>
                 <p className="mt-1 text-2xl font-bold text-gray-900">{totalPosts}</p>
+              </div>
+              <div className="rounded-xl bg-white p-4 shadow-sm">
+                <p className="text-xs text-gray-500">投稿率</p>
+                <p className="mt-1 text-2xl font-bold text-gray-900">
+                  {conversionRate === null ? "-" : `${conversionRate.toFixed(0)}%`}
+                </p>
               </div>
               <div className="rounded-xl bg-white p-4 shadow-sm">
                 <p className="text-xs text-gray-500">参加人数</p>
@@ -154,34 +192,65 @@ export default function AdminPage() {
                     <th className="px-4 py-3 font-medium">ニックネーム</th>
                     <th className="px-4 py-3 font-medium">場所</th>
                     <th className="px-4 py-3 font-medium">投稿回数</th>
-                    <th className="px-4 py-3 font-medium">初回投稿</th>
-                    <th className="px-4 py-3 font-medium">最終投稿</th>
+                    <th className="px-4 py-3 font-medium">初回〜最終投稿</th>
+                    <th className="px-4 py-3 font-medium" />
                   </tr>
                 </thead>
                 <tbody>
-                  {participantSummary.map((row, i) => (
-                    <tr key={row.key} className="border-b border-gray-50 last:border-0">
-                      <td className="px-4 py-3 text-gray-400">{i + 1}</td>
-                      <td className="px-4 py-3 text-gray-800">
-                        {row.nicknames.length > 0 ? row.nicknames.join("・") : "(匿名)"}
-                        {row.isLegacy && (
-                          <span className="ml-1.5 rounded-full bg-gray-100 px-1.5 py-0.5 text-[10px] text-gray-400">
-                            旧データ
-                          </span>
+                  {participantSummary.map((row, i) => {
+                    const isExpanded = expandedKeys.has(row.key);
+                    return (
+                      <Fragment key={row.key}>
+                        <tr className="border-b border-gray-50 last:border-0">
+                          <td className="px-4 py-3 text-gray-400">{i + 1}</td>
+                          <td className="px-4 py-3 text-gray-800">
+                            {row.nicknames.length > 0 ? row.nicknames.join("・") : "(匿名)"}
+                            {row.isLegacy && (
+                              <span className="ml-1.5 rounded-full bg-gray-100 px-1.5 py-0.5 text-[10px] text-gray-400">
+                                旧データ
+                              </span>
+                            )}
+                          </td>
+                          <td className="px-4 py-3 text-gray-500">
+                            {row.locationIds.join("・")}
+                          </td>
+                          <td className="px-4 py-3 font-medium text-gray-900">{row.postCount}</td>
+                          <td className="px-4 py-3 whitespace-nowrap text-gray-500">
+                            {formatDateTime(row.firstPostAt)}
+                            {row.postCount > 1 && <> 〜 {formatDateTime(row.lastPostAt)}</>}
+                          </td>
+                          <td className="px-4 py-3">
+                            {row.postCount > 1 && (
+                              <button
+                                type="button"
+                                onClick={() => toggleExpanded(row.key)}
+                                className="text-xs font-medium text-gray-500 underline underline-offset-2"
+                              >
+                                {isExpanded ? "閉じる" : `全${row.postCount}件を見る`}
+                              </button>
+                            )}
+                          </td>
+                        </tr>
+                        {isExpanded && (
+                          <tr className="border-b border-gray-50 bg-gray-50/60 last:border-0">
+                            <td />
+                            <td colSpan={5} className="px-4 py-3">
+                              <ul className="flex flex-wrap gap-2">
+                                {row.postTimes.map((time, timeIndex) => (
+                                  <li
+                                    key={`${row.key}-${time}-${timeIndex}`}
+                                    className="rounded-full bg-white px-2.5 py-1 text-xs text-gray-600 shadow-sm"
+                                  >
+                                    {formatDateTime(time)}
+                                  </li>
+                                ))}
+                              </ul>
+                            </td>
+                          </tr>
                         )}
-                      </td>
-                      <td className="px-4 py-3 text-gray-500">
-                        {row.locationIds.join("・")}
-                      </td>
-                      <td className="px-4 py-3 font-medium text-gray-900">{row.postCount}</td>
-                      <td className="px-4 py-3 text-gray-500">
-                        {formatDateTime(row.firstPostAt)}
-                      </td>
-                      <td className="px-4 py-3 text-gray-500">
-                        {formatDateTime(row.lastPostAt)}
-                      </td>
-                    </tr>
-                  ))}
+                      </Fragment>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>

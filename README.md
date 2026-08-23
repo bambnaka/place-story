@@ -104,6 +104,27 @@ alter table place_story_posts add column participant_id uuid;
 
 > **注意**: `select` / `update` を anon ロールに広く許可しているのは、このプロトタイプが管理画面用の認証を持たないためです。本番運用する場合は Supabase Auth を導入し、管理系の操作は認証済みユーザーのみに制限してください。
 
+## Supabase の `place_story_scans` テーブル作成SQL(QRコード読み取り回数の記録用)
+
+投稿ページ(`/post/[locationId]`)が開かれるたびに1行記録され、管理画面の「QR読み取り回数」に使われます。
+
+```sql
+create table place_story_scans (
+  id uuid primary key default gen_random_uuid(),
+  location_id text not null,
+  participant_id uuid,
+  created_at timestamp with time zone default now()
+);
+
+alter table place_story_scans enable row level security;
+create policy "誰でも書ける_scans" on place_story_scans for insert with check (true);
+create policy "誰でも読める_scans" on place_story_scans for select using (true);
+
+grant select, insert on table public.place_story_scans to anon;
+```
+
+このテーブルが無くても投稿機能自体は問題なく動作します(記録に失敗しても投稿フローは止めない設計になっています)。管理画面の「QR読み取り回数」欄には `-` が表示され続けます。
+
 ## Supabase Storage バケットの作成方法
 
 1. Supabase ダッシュボード → **Storage** → **New bucket**
@@ -219,6 +240,14 @@ https://your-app.vercel.app/post/cafe-tanaka
 - 不適切な投稿は「非表示にする」ボタンで `is_visible` を `false` にでき、即座にモニター画面から消えます
 - 誤って非表示にした場合は「表示に戻す」で再表示できます
 - 期限切れ(`expires_at` を過ぎた)の投稿は `is_visible` の値にかかわらずモニターには表示されません
+
+### 実験用サマリー
+
+投稿一覧の上に、研究で使えそうな集計を表示しています(`location_id` で絞り込むと、その場所だけの集計に切り替わります)。
+
+- **QR読み取り回数 / 総投稿数 / 投稿率**: 投稿ページが開かれた回数(≒QRコードが読み取られた回数)と、実際に投稿された数、その割合。`place_story_scans` テーブルが無い場合は `-` 表示になります
+- **参加人数 / 平均投稿回数/人 / 複数回投稿した人**: `participant_id` で重複を除いた集計
+- **参加者ごとの投稿回数の表**: ニックネーム・投稿した場所・投稿回数・初回〜最終投稿の時間帯を一覧表示。投稿が2件以上ある参加者は「全◯件を見る」から、その人の全投稿時刻の履歴を展開して確認できます
 
 ## 動作確認の優先事項(研究プロトタイプとして)
 

@@ -5,6 +5,7 @@ export interface ParticipantSummaryRow {
   nicknames: string[];
   locationIds: string[];
   postCount: number;
+  postTimes: string[];
   firstPostAt: string;
   lastPostAt: string;
   isLegacy: boolean;
@@ -25,6 +26,7 @@ export function summarizeParticipants(posts: Post[]): ParticipantSummaryRow[] {
 
     if (existing) {
       existing.postCount += 1;
+      existing.postTimes.push(post.created_at);
       if (post.nickname && !existing.nicknames.includes(post.nickname)) {
         existing.nicknames.push(post.nickname);
       }
@@ -39,11 +41,16 @@ export function summarizeParticipants(posts: Post[]): ParticipantSummaryRow[] {
         nicknames: post.nickname ? [post.nickname] : [],
         locationIds: [post.location_id],
         postCount: 1,
+        postTimes: [post.created_at],
         firstPostAt: post.created_at,
         lastPostAt: post.created_at,
         isLegacy,
       });
     }
+  }
+
+  for (const row of map.values()) {
+    row.postTimes.sort();
   }
 
   return Array.from(map.values()).sort((a, b) => b.postCount - a.postCount);

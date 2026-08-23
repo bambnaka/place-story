@@ -1,11 +1,12 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Cropper, { type Area } from "react-easy-crop";
 import { uploadPostImage, ImageUploadError } from "@/lib/uploadImage";
 import { createPost } from "@/lib/posts";
 import { getParticipantId } from "@/lib/participant";
 import { getCroppedImageFile } from "@/lib/cropImage";
+import { recordScan } from "@/lib/scans";
 
 type Status = "idle" | "uploading" | "done" | "error";
 
@@ -29,6 +30,10 @@ export default function PostForm({ locationId }: { locationId: string }) {
   const [status, setStatus] = useState<Status>("idle");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    recordScan(locationId, getParticipantId());
+  }, [locationId]);
 
   function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
     const selected = e.target.files?.[0];
