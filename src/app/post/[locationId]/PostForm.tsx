@@ -1,16 +1,27 @@
 "use client";
 
 import { useRef, useState } from "react";
+import Cropper, { type Area } from "react-easy-crop";
 import { uploadPostImage, ImageUploadError } from "@/lib/uploadImage";
 import { createPost } from "@/lib/posts";
 import { getParticipantId } from "@/lib/participant";
+import { getCroppedImageFile } from "@/lib/cropImage";
 
 type Status = "idle" | "uploading" | "done" | "error";
 
 const MAX_COMMENT_LENGTH = 80;
 const MAX_NICKNAME_LENGTH = 20;
+const CROP_ASPECT_RATIO = 16 / 9;
 
 export default function PostForm({ locationId }: { locationId: string }) {
+  const [rawFile, setRawFile] = useState<File | null>(null);
+  const [rawImageUrl, setRawImageUrl] = useState<string | null>(null);
+  const [isCropping, setIsCropping] = useState(false);
+  const [crop, setCrop] = useState({ x: 0, y: 0 });
+  const [zoom, setZoom] = useState(1);
+  const [croppedAreaPixels, setCroppedAreaPixels] = useState<Area | null>(null);
+  const [isSavingCrop, setIsSavingCrop] = useState(false);
+
   const [file, setFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [nickname, setNickname] = useState("");
@@ -21,17 +32,26 @@ export default function PostForm({ locationId }: { locationId: string }) {
 
   function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
     const selected = e.target.files?.[0];
-    if (!selected) {
-      setFile(null);
-      setPreviewUrl(null);
-      return;
-    }
-    setFile(selected);
-    setPreviewUrl(URL.createObjectURL(selected));
+    if (!selected) return;
+
+    setRawFile(selected);
+    setRawImageUrl(URL.createObjectURL(selected));
+    setCrop({ x: 0, y: 0 });
+    setZoom(1);
+    setCroppedAreaPixels(null);
+    setIsCropping(true);
+    setFile(null);
+    setPreviewUrl(null);
     setErrorMessage(null);
   }
 
   function resetForm() {
+    setRawFile(null);
+    setRawImageUrl(null);
+    setIsCropping(false);
+    setCrop({ x: 0, y: 0 });
+    setZoom(1);
+    setCroppedAreaPixels(null);
     setFile(null);
     setPreviewUrl(null);
     setNickname("");
@@ -41,10 +61,34 @@ export default function PostForm({ locationId }: { locationId: string }) {
     if (fileInputRef.current) fileInputRef.current.value = "";
   }
 
+  async function handleConfirmCrop() {
+    if (!rawImageUrl || !rawFile || !croppedAreaPixels) return;
+
+    setIsSavingCrop(true);
+    setErrorMessage(null);
+    try {
+      const croppedFile = await getCroppedImageFile(
+        rawImageUrl,
+        croppedAreaPixels,
+        rawFile.name,
+        rawFile.type || "image/jpeg"
+      );
+      setFile(croppedFile);
+      setPreviewUrl(URL.createObjectURL(croppedFile));
+      setIsCropping(false);
+    } catch (err) {
+      setErrorMessage(
+        err instanceof Error ? err.message : "画像の切り抜きに失敗しました。もう一度お試しください。"
+      );
+    } finally {
+      setIsSavingCrop(false);
+    }
+  }
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!file) {
-      setErrorMessage("画像を選択してください。");
+      setErrorMessage("画像を選択し、表示範囲を決定してください。");
       return;
     }
 
@@ -92,7 +136,7 @@ export default function PostForm({ locationId }: { locationId: string }) {
           <img
             src={previewUrl}
             alt="投稿した画像のプレビュー"
-            className="mt-2 max-h-64 w-full max-w-xs rounded-xl object-cover shadow-sm"
+            className="mt-2 w-full max-w-xs rounded-xl object-cover shadow-sm"
           />
         )}
         <button
@@ -102,6 +146,64 @@ export default function PostForm({ locationId }: { locationId: string }) {
         >
           もう一度投稿する
         </button>
+      </div>
+    );
+  }
+
+  if (isCropping && rawImageUrl) {
+    return (
+      <div className="flex flex-col gap-4">
+        <div>
+          <p className="text-sm font-medium text-gray-700">表示範囲を調整してください</p>
+          <p className="mt-1 text-xs text-gray-500">
+            モニターでは横長で表示されます。ドラッグで位置、スライダーで拡大・縮小できます。
+          </p>
+        </div>
+
+        <div className="relative h-72 w-full overflow-hidden rounded-xl bg-gray-900">
+          <Cropper
+            image={rawImageUrl}
+            crop={crop}
+            zoom={zoom}
+            aspect={CROP_ASPECT_RATIO}
+            onCropChange={setCrop}
+            onZoomChange={setZoom}
+            onCropComplete={(_, pixels) => setCroppedAreaPixels(pixels)}
+          />
+        </div>
+
+        <input
+          type="range"
+          min={1}
+          max={4}
+          step={0.01}
+          value={zoom}
+          onChange={(e) => setZoom(Number(e.target.value))}
+          className="w-full accent-gray-900"
+          aria-label="ズーム"
+        />
+
+        {errorMessage && (
+          <p className="rounded-lg bg-red-50 px-4 py-3 text-sm text-red-600">{errorMessage}</p>
+        )}
+
+        <div className="flex gap-3">
+          <button
+            type="button"
+            onClick={resetForm}
+            className="flex-1 rounded-full border border-gray-300 px-4 py-3 text-sm font-medium text-gray-700 hover:bg-gray-50"
+          >
+            選び直す
+          </button>
+          <button
+            type="button"
+            onClick={handleConfirmCrop}
+            disabled={isSavingCrop || !croppedAreaPixels}
+            className="flex-1 rounded-full bg-gray-900 px-4 py-3 text-sm font-medium text-white transition hover:bg-gray-700 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            {isSavingCrop ? "処理中..." : "この範囲に決定"}
+          </button>
+        </div>
       </div>
     );
   }
@@ -117,7 +219,7 @@ export default function PostForm({ locationId }: { locationId: string }) {
         </label>
         <label
           htmlFor="image"
-          className="flex h-56 w-full cursor-pointer flex-col items-center justify-center overflow-hidden rounded-xl border-2 border-dashed border-gray-300 bg-gray-50 transition hover:border-gray-400"
+          className="flex h-40 w-full cursor-pointer flex-col items-center justify-center overflow-hidden rounded-xl border-2 border-dashed border-gray-300 bg-gray-50 transition hover:border-gray-400"
         >
           {previewUrl ? (
             // eslint-disable-next-line @next/next/no-img-element
@@ -147,6 +249,15 @@ export default function PostForm({ locationId }: { locationId: string }) {
             </span>
           )}
         </label>
+        {previewUrl && rawImageUrl && (
+          <button
+            type="button"
+            onClick={() => setIsCropping(true)}
+            className="mt-2 text-xs font-medium text-gray-500 underline underline-offset-2"
+          >
+            表示範囲を調整し直す
+          </button>
+        )}
         <input
           ref={fileInputRef}
           id="image"
