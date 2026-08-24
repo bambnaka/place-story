@@ -109,12 +109,18 @@ export default function ScreenView({ locationId }: { locationId: string }) {
         <p className="max-w-md px-6 text-center text-red-300">{errorMessage}</p>
       )}
 
-      {!isLoading && !errorMessage && posts.length === 0 && (
-        <div className="flex max-w-3xl flex-col items-center gap-4 px-6 text-center">
-          <p className="text-3xl font-bold sm:text-4xl lg:text-5xl">あなたの今を共有しよう</p>
-          <p className="text-base text-white/60 sm:text-lg">
-            下のQRコードを読み取って、最初の投稿をしてみましょう
-          </p>
+      {!isLoading && !errorMessage && posts.length === 0 && postUrl && (
+        <div className="flex max-w-3xl flex-col items-center gap-8 px-6 text-center">
+          <div className="flex flex-col items-center gap-4">
+            <p className="text-xs font-bold tracking-[0.4em] text-white/50">PLACE STORY</p>
+            <p className="text-3xl font-bold tracking-wide sm:text-4xl lg:text-5xl">
+              あなたの今を共有しよう
+            </p>
+          </div>
+          <div className="flex flex-col items-center gap-3 rounded-3xl bg-white px-10 py-8 shadow-2xl">
+            <QRCodeSVG value={postUrl} size={260} />
+            <p className="text-sm font-medium text-gray-700">QRコードを読み取って投稿</p>
+          </div>
         </div>
       )}
 
@@ -174,7 +180,7 @@ export default function ScreenView({ locationId }: { locationId: string }) {
         </div>
       )}
 
-      {postUrl && (
+      {postUrl && posts.length > 0 && (
         <div className="absolute bottom-8 right-8 flex flex-col items-center gap-3 rounded-3xl bg-white px-8 py-6 shadow-2xl">
           <p className="text-xl font-bold tracking-wide text-gray-900">PLACE STORY</p>
           {participantCount !== null && (
