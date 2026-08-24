@@ -118,7 +118,7 @@ export default function ScreenView({ locationId }: { locationId: string }) {
             </p>
           </div>
           <div className="flex flex-col items-center gap-3 rounded-3xl bg-white px-10 py-8 shadow-2xl">
-            <QRCodeSVG value={postUrl} size={260} />
+            <QRCodeSVG value={postUrl} size={460} />
             <p className="text-sm font-medium text-gray-700">QRコードを読み取って投稿</p>
           </div>
         </div>
