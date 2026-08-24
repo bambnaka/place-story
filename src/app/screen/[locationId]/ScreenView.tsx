@@ -176,7 +176,7 @@ export default function ScreenView({ locationId }: { locationId: string }) {
 
           <div className="flex w-full max-w-2xl flex-col items-center gap-1 px-6 text-center">
             {activePost.comment && (
-              <p className="text-xl font-medium">{activePost.comment}</p>
+              <p className="text-3xl font-bold sm:text-4xl">{activePost.comment}</p>
             )}
             <p className="text-sm text-white/50">
               {activePost.nickname ? `${activePost.nickname} · ` : ""}
