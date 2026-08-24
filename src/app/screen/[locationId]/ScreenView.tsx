@@ -201,7 +201,7 @@ export default function ScreenView({ locationId }: { locationId: string }) {
 
       {postUrl && posts.length > 0 && (
         <div className="absolute bottom-8 right-8 flex flex-col items-center gap-3 rounded-3xl bg-white px-8 py-6 shadow-2xl">
-          <p className="text-xl font-bold tracking-wide text-gray-900">PLACE STORY</p>
+          <p className="text-xl font-bold tracking-wide text-gray-900">あなたの今を共有しよう</p>
           {participantCount !== null && (
             <p className="rounded-full bg-gray-100 px-3 py-1 text-xs font-medium text-gray-600">
               参加人数 {participantCount}人
