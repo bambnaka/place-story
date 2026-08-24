@@ -2,7 +2,7 @@
 
 import { Fragment, useCallback, useEffect, useMemo, useState } from "react";
 import { deleteAllPosts, fetchAdminPosts, setPostVisibility } from "@/lib/posts";
-import { deleteAllScans, fetchScanCount } from "@/lib/scans";
+import { deleteAllScans, fetchScanRows, type ScanRow } from "@/lib/scans";
 import { summarizeParticipants } from "@/lib/participantSummary";
 import type { Post } from "@/types/post";
 
@@ -24,7 +24,7 @@ function statusOf(post: Post): { label: string; className: string } {
 
 export default function AdminPage() {
   const [posts, setPosts] = useState<Post[]>([]);
-  const [scanCount, setScanCount] = useState<number | null>(null);
+  const [scanRows, setScanRows] = useState<ScanRow[] | null>(null);
   const [locationFilter, setLocationFilter] = useState("");
   const [isLoading, setIsLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -43,9 +43,9 @@ export default function AdminPage() {
       // place_story_scans テーブルが未作成でも投稿一覧の表示は続けたいので、
       // 読み取り回数の取得失敗はこのブロックの外に影響させない
       try {
-        setScanCount(await fetchScanCount(trimmed));
+        setScanRows(await fetchScanRows(trimmed));
       } catch {
-        setScanCount(null);
+        setScanRows(null);
       }
     } catch (err) {
       setErrorMessage(err instanceof Error ? err.message : "投稿の取得に失敗しました。");
@@ -91,8 +91,39 @@ export default function AdminPage() {
   const avgPostsPerParticipant =
     totalParticipants === 0 ? 0 : totalPosts / totalParticipants;
   const repeatParticipants = participantSummary.filter((p) => p.postCount > 1).length;
+  const scanCount = scanRows ? scanRows.length : null;
   const conversionRate =
     scanCount && scanCount > 0 ? Math.min((totalPosts / scanCount) * 100, 100) : null;
+
+  const locationSummaries = useMemo(() => {
+    const locationIds = new Set<string>();
+    for (const { locationId } of postsByLocation) locationIds.add(locationId);
+    if (scanRows) {
+      for (const row of scanRows) locationIds.add(row.location_id);
+    }
+
+    return Array.from(locationIds)
+      .map((locationId) => {
+        const items = postsByLocation.find((g) => g.locationId === locationId)?.items ?? [];
+        const postCount = items.length;
+        const participantCount = summarizeParticipants(items).length;
+        const scanCountForLocation = scanRows
+          ? scanRows.filter((r) => r.location_id === locationId).length
+          : null;
+        const conversionRateForLocation =
+          scanCountForLocation && scanCountForLocation > 0
+            ? Math.min((postCount / scanCountForLocation) * 100, 100)
+            : null;
+        return {
+          locationId,
+          postCount,
+          participantCount,
+          scanCount: scanCountForLocation,
+          conversionRate: conversionRateForLocation,
+        };
+      })
+      .sort((a, b) => b.postCount - a.postCount);
+  }, [postsByLocation, scanRows]);
 
   async function handleDeleteAll() {
     const scope = locationFilter.trim();
@@ -236,7 +267,43 @@ export default function AdminPage() {
               </div>
             </div>
 
-            <div className="mt-4 overflow-x-auto rounded-xl bg-white shadow-sm">
+            {locationSummaries.length > 0 && (
+              <div className="mt-6">
+                <h3 className="text-xs font-bold text-gray-500">場所ごとのサマリー</h3>
+                <div className="mt-2 overflow-x-auto rounded-xl bg-white shadow-sm">
+                  <table className="w-full min-w-[480px] text-left text-sm">
+                    <thead>
+                      <tr className="border-b border-gray-100 text-xs text-gray-500">
+                        <th className="px-4 py-3 font-medium">場所</th>
+                        <th className="px-4 py-3 font-medium">QR読み取り回数</th>
+                        <th className="px-4 py-3 font-medium">投稿数</th>
+                        <th className="px-4 py-3 font-medium">投稿率</th>
+                        <th className="px-4 py-3 font-medium">参加人数</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {locationSummaries.map((row) => (
+                        <tr key={row.locationId} className="border-b border-gray-50 last:border-0">
+                          <td className="px-4 py-3 font-medium text-gray-900">
+                            {row.locationId}
+                          </td>
+                          <td className="px-4 py-3 text-gray-700">{row.scanCount ?? "-"}</td>
+                          <td className="px-4 py-3 text-gray-700">{row.postCount}</td>
+                          <td className="px-4 py-3 text-gray-700">
+                            {row.conversionRate === null
+                              ? "-"
+                              : `${row.conversionRate.toFixed(0)}%`}
+                          </td>
+                          <td className="px-4 py-3 text-gray-700">{row.participantCount}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+
+            <div className="mt-6 overflow-x-auto rounded-xl bg-white shadow-sm">
               <table className="w-full min-w-[560px] text-left text-sm">
                 <thead>
                   <tr className="border-b border-gray-100 text-xs text-gray-500">

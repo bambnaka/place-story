@@ -329,7 +329,18 @@ export default function PostForm({
         disabled={status === "uploading"}
         className="w-full rounded-full bg-gray-900 px-6 py-3 text-sm font-medium text-white transition hover:bg-gray-700 disabled:cursor-not-allowed disabled:opacity-50"
       >
-        {status === "uploading" ? "投稿中..." : "この場所に投稿する"}
+        {status === "uploading" ? (
+          <span className="inline-flex items-center gap-1.5">
+            投稿中
+            <span className="inline-flex items-end gap-0.5">
+              <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-white [animation-delay:-0.3s]" />
+              <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-white [animation-delay:-0.15s]" />
+              <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-white" />
+            </span>
+          </span>
+        ) : (
+          "この場所に投稿する"
+        )}
       </button>
     </form>
   );

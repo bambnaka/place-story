@@ -16,24 +16,27 @@ export async function recordScan(locationId: string, participantId: string): Pro
   }
 }
 
-export async function fetchScanCount(locationId?: string): Promise<number> {
-  let query = supabase.from(SCANS_TABLE).select("*", { count: "exact", head: true });
+export interface ScanRow {
+  location_id: string;
+}
+
+/**
+ * 読み取り履歴を取得する(場所ごとの内訳を集計できるよう生の行を返す)。
+ */
+export async function fetchScanRows(locationId?: string): Promise<ScanRow[]> {
+  let query = supabase.from(SCANS_TABLE).select("location_id");
 
   if (locationId) {
     query = query.eq("location_id", locationId);
   }
 
-  const { count, error } = await query;
+  const { data, error } = await query;
 
   if (error) {
-    throw new Error(`QRコード読み取り回数の取得に失敗しました: ${error.message}`);
-  }
-  if (count === null) {
-    // テーブル未作成時など、PostgRESTがエラーを返さずcount=nullだけ返すケースがあるため
-    throw new Error("QRコード読み取り回数を取得できませんでした(テーブル未作成の可能性があります)。");
+    throw new Error(`QRコード読み取り履歴の取得に失敗しました: ${error.message}`);
   }
 
-  return count;
+  return (data ?? []) as ScanRow[];
 }
 
 /**
