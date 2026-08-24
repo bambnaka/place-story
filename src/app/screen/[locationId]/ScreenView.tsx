@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { QRCodeSVG } from "qrcode.react";
 import { supabase, POSTS_TABLE } from "@/lib/supabase";
-import { fetchScreenPosts, fetchParticipantCount } from "@/lib/posts";
+import { fetchScreenPosts } from "@/lib/posts";
 import type { Post } from "@/types/post";
 
 const FETCH_INTERVAL_MS = 30_000;
@@ -23,7 +23,6 @@ function formatElapsed(createdAt: string): string {
 
 export default function ScreenView({ locationId }: { locationId: string }) {
   const [posts, setPosts] = useState<Post[]>([]);
-  const [participantCount, setParticipantCount] = useState<number | null>(null);
   const [activeIndex, setActiveIndex] = useState(0);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -31,12 +30,8 @@ export default function ScreenView({ locationId }: { locationId: string }) {
 
   const load = useCallback(async () => {
     try {
-      const [data, count] = await Promise.all([
-        fetchScreenPosts(locationId),
-        fetchParticipantCount(locationId),
-      ]);
+      const data = await fetchScreenPosts(locationId);
       setPosts(data);
-      setParticipantCount(count);
       setErrorMessage(null);
       setActiveIndex((current) => (data.length === 0 ? 0 : current % data.length));
     } catch (err) {
@@ -202,11 +197,6 @@ export default function ScreenView({ locationId }: { locationId: string }) {
       {postUrl && posts.length > 0 && (
         <div className="absolute bottom-8 right-8 flex flex-col items-center gap-3 rounded-3xl bg-white px-8 py-6 shadow-2xl">
           <p className="text-xl font-bold tracking-wide text-gray-900">あなたの今を共有しよう</p>
-          {participantCount !== null && (
-            <p className="rounded-full bg-gray-100 px-3 py-1 text-xs font-medium text-gray-600">
-              参加人数 {participantCount}人
-            </p>
-          )}
           <QRCodeSVG value={postUrl} size={240} />
           <p className="text-sm font-medium text-gray-700">QRコードを読み取って投稿</p>
         </div>

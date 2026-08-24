@@ -77,29 +77,6 @@ export async function fetchAdminPosts(locationId?: string): Promise<Post[]> {
 }
 
 /**
- * その場所への累計参加人数を取得する。
- * 同じ端末(participant_id)からの複数投稿は1人として数える。
- * is_visible や expires_at に関わらず、これまでの参加者数を数える。
- * participant_id が無い古いデータ(移行前の投稿)は、投稿ごとに1人としてカウントする。
- */
-export async function fetchParticipantCount(locationId: string): Promise<number> {
-  const { data, error } = await supabase
-    .from(POSTS_TABLE)
-    .select("id, participant_id")
-    .eq("location_id", locationId);
-
-  if (error) {
-    throw new Error(`参加人数の取得に失敗しました: ${error.message}`);
-  }
-
-  const uniqueParticipants = new Set(
-    (data ?? []).map((row) => row.participant_id ?? `__row_${row.id}`)
-  );
-
-  return uniqueParticipants.size;
-}
-
-/**
  * 投稿(と紐づくStorage上の画像)を完全に削除する。取り消せない操作。
  * locationIdを指定しない場合は全場所の投稿を削除する。
  */
