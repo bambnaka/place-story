@@ -100,17 +100,36 @@ export default function ScreenView({ locationId }: { locationId: string }) {
   const activePost = posts[activeIndex];
 
   return (
-    <main className="relative flex min-h-dvh flex-col items-center justify-center overflow-hidden bg-black text-white">
+    <main className="relative flex min-h-dvh flex-col items-center justify-center overflow-hidden text-white">
+      <div className="pointer-events-none absolute inset-0 z-0 overflow-hidden bg-black">
+        <div
+          className="absolute top-[-20%] left-[-15%] h-[70vh] w-[70vh] rounded-full bg-red-600/40 blur-[120px]"
+          style={{ animation: "glow-drift-a 26s ease-in-out infinite" }}
+        />
+        <div
+          className="absolute top-[10%] right-[-20%] h-[80vh] w-[80vh] rounded-full bg-blue-500/35 blur-[130px]"
+          style={{ animation: "glow-drift-b 32s ease-in-out infinite" }}
+        />
+        <div
+          className="absolute bottom-[-25%] left-[15%] h-[65vh] w-[65vh] rounded-full bg-purple-600/30 blur-[110px]"
+          style={{ animation: "glow-drift-c 38s ease-in-out infinite" }}
+        />
+        <div
+          className="absolute right-[10%] bottom-[-15%] h-[55vh] w-[55vh] rounded-full bg-orange-500/25 blur-[110px]"
+          style={{ animation: "glow-drift-a 30s ease-in-out infinite reverse" }}
+        />
+      </div>
+
       {isLoading && (
-        <p className="text-white/60">読み込み中...</p>
+        <p className="relative text-white/60">読み込み中...</p>
       )}
 
       {!isLoading && errorMessage && (
-        <p className="max-w-md px-6 text-center text-red-300">{errorMessage}</p>
+        <p className="relative max-w-md px-6 text-center text-red-300">{errorMessage}</p>
       )}
 
       {!isLoading && !errorMessage && posts.length === 0 && postUrl && (
-        <div className="flex max-w-3xl flex-col items-center gap-8 px-6 text-center">
+        <div className="relative flex max-w-3xl flex-col items-center gap-8 px-6 text-center">
           <div className="flex flex-col items-center gap-4">
             <p className="text-xs font-bold tracking-[0.4em] text-white/50">PLACE STORY</p>
             <p className="text-3xl font-bold tracking-wide sm:text-4xl lg:text-5xl">
@@ -125,7 +144,7 @@ export default function ScreenView({ locationId }: { locationId: string }) {
       )}
 
       {!isLoading && activePost && (
-        <div className="flex w-full flex-col items-center gap-6">
+        <div className="relative flex w-full flex-col items-center gap-6">
           <div className="relative h-[78dvh] w-full overflow-hidden">
             <div
               className="absolute top-0 flex h-full items-center gap-x-[2vw] transition-transform duration-[1300ms] ease-in-out"
