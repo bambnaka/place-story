@@ -44,7 +44,9 @@ export async function fetchScanCount(locationId?: string): Promise<number> {
 export async function deleteAllScans(locationId?: string): Promise<void> {
   try {
     const query = supabase.from(SCANS_TABLE).delete();
-    await (locationId ? query.eq("location_id", locationId) : query);
+    // PostgRESTはWHERE句の無いDELETEを拒否するため、全件削除時も
+    // 「idがnullでない」という常に真の条件を明示的に付与する
+    await (locationId ? query.eq("location_id", locationId) : query.not("id", "is", null));
   } catch {
     // scansテーブルが無い環境でも投稿削除自体は成功させたいので無視する
   }

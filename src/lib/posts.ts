@@ -105,9 +105,11 @@ export async function fetchParticipantCount(locationId: string): Promise<number>
  */
 export async function deleteAllPosts(locationId?: string): Promise<Post[]> {
   const query = supabase.from(POSTS_TABLE).delete().select();
+  // PostgRESTはWHERE句の無いDELETEを拒否するため、全件削除時も
+  // 「idがnullでない」という常に真の条件を明示的に付与する
   const { data, error } = await (locationId
     ? query.eq("location_id", locationId)
-    : query);
+    : query.not("id", "is", null));
 
   if (error) {
     throw new Error(`投稿の削除に失敗しました: ${error.message}`);
