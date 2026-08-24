@@ -72,6 +72,19 @@ export default function AdminPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  const postsByLocation = useMemo(() => {
+    const map = new Map<string, Post[]>();
+    for (const post of posts) {
+      const list = map.get(post.location_id);
+      if (list) {
+        list.push(post);
+      } else {
+        map.set(post.location_id, [post]);
+      }
+    }
+    return Array.from(map.entries()).map(([locationId, items]) => ({ locationId, items }));
+  }, [posts]);
+
   const participantSummary = useMemo(() => summarizeParticipants(posts), [posts]);
   const totalPosts = posts.length;
   const totalParticipants = participantSummary.length;
@@ -308,54 +321,79 @@ export default function AdminPage() {
         ) : posts.length === 0 ? (
           <p className="mt-8 text-sm text-gray-500">投稿がありません。</p>
         ) : (
-          <ul className="mt-3 flex flex-col gap-3">
-            {posts.map((post) => {
-              const status = statusOf(post);
-              return (
-                <li
-                  key={post.id}
-                  className="flex flex-col gap-3 rounded-xl bg-white p-4 shadow-sm sm:flex-row sm:items-center"
-                >
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src={post.image_url}
-                    alt={post.comment ?? "投稿画像"}
-                    className="h-24 w-24 shrink-0 rounded-lg object-cover"
-                  />
-                  <div className="min-w-0 flex-1">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <span className="text-xs font-medium text-gray-400">
-                        {post.location_id}
-                      </span>
-                      <span
-                        className={`rounded-full px-2 py-0.5 text-xs font-medium ${status.className}`}
+          <div className="mt-3 flex flex-col gap-8">
+            {postsByLocation.map(({ locationId, items }) => (
+              <section key={locationId}>
+                <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+                  <h3 className="text-sm font-bold text-gray-900">
+                    {locationId}
+                    <span className="ml-1.5 text-xs font-normal text-gray-400">
+                      ({items.length}件)
+                    </span>
+                  </h3>
+                  {!locationFilter.trim() && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setLocationFilter(locationId);
+                        load(locationId);
+                      }}
+                      className="text-xs font-medium text-gray-500 underline underline-offset-2"
+                    >
+                      この場所だけ表示
+                    </button>
+                  )}
+                </div>
+                <ul className="flex flex-col gap-3">
+                  {items.map((post) => {
+                    const status = statusOf(post);
+                    return (
+                      <li
+                        key={post.id}
+                        className="flex flex-col gap-3 rounded-xl bg-white p-4 shadow-sm sm:flex-row sm:items-center"
                       >
-                        {status.label}
-                      </span>
-                    </div>
-                    <p className="mt-1 truncate text-sm text-gray-800">
-                      {post.nickname && (
-                        <span className="font-medium text-gray-500">{post.nickname}: </span>
-                      )}
-                      {post.comment || "(コメントなし)"}
-                    </p>
-                    <p className="mt-1 text-xs text-gray-400">
-                      投稿: {formatDateTime(post.created_at)} / 期限:{" "}
-                      {formatDateTime(post.expires_at)}
-                    </p>
-                  </div>
-                  <button
-                    type="button"
-                    disabled={pendingId === post.id}
-                    onClick={() => toggleVisibility(post)}
-                    className="shrink-0 rounded-full border border-gray-300 px-4 py-2 text-xs font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50"
-                  >
-                    {post.is_visible ? "非表示にする" : "表示に戻す"}
-                  </button>
-                </li>
-              );
-            })}
-          </ul>
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img
+                          src={post.image_url}
+                          alt={post.comment ?? "投稿画像"}
+                          className="h-24 w-24 shrink-0 rounded-lg object-cover"
+                        />
+                        <div className="min-w-0 flex-1">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <span
+                              className={`rounded-full px-2 py-0.5 text-xs font-medium ${status.className}`}
+                            >
+                              {status.label}
+                            </span>
+                          </div>
+                          <p className="mt-1 truncate text-sm text-gray-800">
+                            {post.nickname && (
+                              <span className="font-medium text-gray-500">
+                                {post.nickname}:{" "}
+                              </span>
+                            )}
+                            {post.comment || "(コメントなし)"}
+                          </p>
+                          <p className="mt-1 text-xs text-gray-400">
+                            投稿: {formatDateTime(post.created_at)} / 期限:{" "}
+                            {formatDateTime(post.expires_at)}
+                          </p>
+                        </div>
+                        <button
+                          type="button"
+                          disabled={pendingId === post.id}
+                          onClick={() => toggleVisibility(post)}
+                          className="shrink-0 rounded-full border border-gray-300 px-4 py-2 text-xs font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+                        >
+                          {post.is_visible ? "非表示にする" : "表示に戻す"}
+                        </button>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </section>
+            ))}
+          </div>
         )}
       </div>
     </main>
