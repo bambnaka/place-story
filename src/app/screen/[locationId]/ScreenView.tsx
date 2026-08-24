@@ -110,9 +110,9 @@ export default function ScreenView({ locationId }: { locationId: string }) {
       )}
 
       {!isLoading && !errorMessage && posts.length === 0 && (
-        <div className="flex flex-col items-center gap-3 px-6 text-center">
-          <p className="text-2xl font-bold">まだ投稿がありません</p>
-          <p className="text-white/60">
+        <div className="flex max-w-3xl flex-col items-center gap-4 px-6 text-center">
+          <p className="text-3xl font-bold sm:text-4xl lg:text-5xl">あなたの今を共有しよう</p>
+          <p className="text-base text-white/60 sm:text-lg">
             下のQRコードを読み取って、最初の投稿をしてみましょう
           </p>
         </div>
@@ -182,7 +182,7 @@ export default function ScreenView({ locationId }: { locationId: string }) {
               参加人数 {participantCount}人
             </p>
           )}
-          <QRCodeSVG value={postUrl} size={176} />
+          <QRCodeSVG value={postUrl} size={240} />
           <p className="text-sm font-medium text-gray-700">QRコードを読み取って投稿</p>
         </div>
       )}
