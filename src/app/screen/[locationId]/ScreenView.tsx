@@ -2,8 +2,14 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { QRCodeSVG } from "qrcode.react";
-import { supabase, POSTS_TABLE } from "@/lib/supabase";
+import { supabase, POSTS_TABLE, SURVEY_TABLE } from "@/lib/supabase";
 import { fetchScreenPosts } from "@/lib/posts";
+import {
+  fetchAffiliationCounts,
+  AFFILIATION_CATEGORIES,
+  AFFILIATION_SHORT_LABELS,
+  type AffiliationCategory,
+} from "@/lib/survey";
 import type { Post } from "@/types/post";
 
 const FETCH_INTERVAL_MS = 30_000;
@@ -27,6 +33,11 @@ export default function ScreenView({ locationId }: { locationId: string }) {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [postUrl, setPostUrl] = useState("");
+  const [surveyUrl, setSurveyUrl] = useState("");
+  const [affiliationCounts, setAffiliationCounts] = useState<Record<
+    AffiliationCategory,
+    number
+  > | null>(null);
 
   const load = useCallback(async () => {
     try {
@@ -45,7 +56,41 @@ export default function ScreenView({ locationId }: { locationId: string }) {
     // window はブラウザでしか取得できないため、マウント後に反映する
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setPostUrl(`${window.location.origin}/post/${locationId}?src=qr`);
+    setSurveyUrl(`${window.location.origin}/survey?loc=${locationId}`);
   }, [locationId]);
+
+  const loadSurveyCounts = useCallback(async () => {
+    try {
+      setAffiliationCounts(await fetchAffiliationCounts());
+    } catch {
+      // survey テーブルが未作成でもモニター表示自体は続ける
+      setAffiliationCounts(null);
+    }
+  }, []);
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    loadSurveyCounts();
+    const timer = setInterval(loadSurveyCounts, FETCH_INTERVAL_MS);
+    return () => clearInterval(timer);
+  }, [loadSurveyCounts]);
+
+  useEffect(() => {
+    const channel = supabase
+      .channel(`place_story_survey_${locationId}`)
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: SURVEY_TABLE },
+        () => {
+          loadSurveyCounts();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [locationId, loadSurveyCounts]);
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -199,6 +244,44 @@ export default function ScreenView({ locationId }: { locationId: string }) {
           <p className="text-xl font-bold tracking-wide text-gray-900">いまなにしてる？</p>
           <QRCodeSVG value={postUrl} size={240} />
           <p className="text-sm font-medium text-gray-700">QRコードを読み取って投稿</p>
+        </div>
+      )}
+
+      {surveyUrl && (
+        <div className="absolute bottom-8 left-8 flex flex-col items-center gap-3 rounded-3xl bg-white px-6 py-6 shadow-2xl">
+          <div className="text-center">
+            <p className="text-sm font-bold text-gray-900">本実験のアンケート</p>
+            <p className="text-xs text-gray-500">投稿の有無は問いません！どしどしお答えください！</p>
+          </div>
+          <div className="flex items-center gap-5">
+            <QRCodeSVG value={surveyUrl} size={140} />
+            {affiliationCounts && (
+              <div className="flex w-40 flex-col gap-2">
+                {AFFILIATION_CATEGORIES.map((category) => {
+                  const count = affiliationCounts[category];
+                  const max = Math.max(
+                    1,
+                    ...AFFILIATION_CATEGORIES.map((c) => affiliationCounts[c])
+                  );
+                  const percent = (count / max) * 100;
+                  return (
+                    <div key={category}>
+                      <div className="flex items-center justify-between gap-2 text-[10px] text-gray-600">
+                        <span className="truncate">{AFFILIATION_SHORT_LABELS[category]}</span>
+                        <span className="font-bold text-gray-900">{count}</span>
+                      </div>
+                      <div className="mt-0.5 h-1.5 w-full overflow-hidden rounded-full bg-gray-100">
+                        <div
+                          className="h-full rounded-full bg-gray-900 transition-all duration-500"
+                          style={{ width: `${percent}%` }}
+                        />
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
         </div>
       )}
     </main>

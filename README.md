@@ -131,6 +131,34 @@ grant select, insert on table public.place_story_scans to anon;
 
 このテーブルが無くても投稿機能自体は問題なく動作します(記録に失敗しても投稿フローは止めない設計になっています)。管理画面の「QR読み取り回数」欄には `-` が表示され続けます。
 
+## Supabase の `place_story_survey_responses` テーブル作成SQL(実験アンケート用)
+
+`/survey` は実験全体(2週間の実験期間)についてのアンケートページで、`/post/[locationId]` のような場所ごとのページではありません。モニター画面の左下にこのアンケート専用のQRコードと、所属ごとの回答数を示す簡易棒グラフを表示します。
+
+```sql
+create table place_story_survey_responses (
+  id uuid primary key default gen_random_uuid(),
+  location_id text,
+  affiliation_category text not null,
+  affiliation_other text,
+  answers jsonb not null,
+  created_at timestamp with time zone default now()
+);
+
+alter table place_story_survey_responses enable row level security;
+create policy "誰でも書ける_survey" on place_story_survey_responses for insert with check (true);
+create policy "誰でも読める_survey" on place_story_survey_responses for select using (true);
+
+grant select, insert on table public.place_story_survey_responses to anon;
+```
+
+- `affiliation_category`: 「環境デザイン研究室」「コミュニケーションデザイン研究室」「その他」のいずれか(モニターの棒グラフの集計に使う)
+- `affiliation_other`: 所属で「その他」を選んだ場合の自由記述(任意)
+- `answers`: それ以外の全設問への回答をまとめて保存するJSON(参加のきっかけ、他者の存在を感じたか、投稿のモチベーション、投稿のしやすさ、感想など)
+- `location_id`: どのモニターのQRコードから来たかの参考情報(任意、集計の絞り込みには使っていません)
+
+このテーブルが無くてもモニター表示や投稿機能は問題なく動作します(左下のパネルはQRコードと見出しのみ表示され、棒グラフ部分だけが省略されます)。
+
 ## Supabase Storage バケットの作成方法
 
 1. Supabase ダッシュボード → **Storage** → **New bucket**
@@ -255,6 +283,15 @@ https://your-app.vercel.app/post/cafe-tanaka
 ```
 
 来訪者がこのQRコードを読み取ると投稿ページが開き、写真とひとことコメントをその場から投稿できます。
+
+## アンケートページ(`/survey`)の使い方
+
+モニター画面の左下には、投稿用とは別の「本実験のアンケート」QRコードが常時表示されます。これは場所ごとではなく実験全体に対する1つのアンケートで、`/survey` に `?loc=locationId` を付けたURL(どのモニター経由かの記録用)を埋め込んでいます。
+
+- 質問内容は、Googleフォームで作成していた元のアンケート(所属・関わり方・他者の存在の実感・投稿のモチベーション・普段のSNSとの比較・感想)をそのまま再現しています
+- 投稿していない人も回答できる旨をQRコードの上に明記しています
+- 最初の質問(所属: 環境デザイン研究室 / コミュニケーションデザイン研究室 / その他)の回答は、モニター画面のQRコードの横に**件数と簡易棒グラフ**としてリアルタイムに反映されます
+- 回答は `place_story_survey_responses` テーブルにJSON形式で保存されます。分析する際はSupabaseのTable Editorから `answers` 列をエクスポートしてください
 
 ## 管理画面の使い方
 
