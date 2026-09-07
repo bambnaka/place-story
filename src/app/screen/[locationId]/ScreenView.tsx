@@ -242,7 +242,7 @@ export default function ScreenView({ locationId }: { locationId: string }) {
       {postUrl && posts.length > 0 && (
         <div className="absolute bottom-8 right-8 flex flex-col items-center gap-3 rounded-3xl bg-white px-8 py-6 shadow-2xl">
           <p className="text-xl font-bold tracking-wide text-gray-900">いまなにしてる？</p>
-          <QRCodeSVG value={postUrl} size={240} />
+          <QRCodeSVG value={postUrl} size={140} />
           <p className="text-sm font-medium text-gray-700">QRコードを読み取って投稿</p>
         </div>
       )}
@@ -254,7 +254,7 @@ export default function ScreenView({ locationId }: { locationId: string }) {
             <p className="text-xs text-gray-500">投稿の有無は問いません！どしどしお答えください！</p>
           </div>
           <div className="flex items-center gap-5">
-            <QRCodeSVG value={surveyUrl} size={140} />
+            <QRCodeSVG value={surveyUrl} size={240} />
             {affiliationCounts && (
               <div className="flex w-40 flex-col gap-2">
                 {AFFILIATION_CATEGORIES.map((category) => {
