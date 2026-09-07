@@ -32,7 +32,6 @@ export default function ScreenView({ locationId }: { locationId: string }) {
   const [activeIndex, setActiveIndex] = useState(0);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [postUrl, setPostUrl] = useState("");
   const [surveyUrl, setSurveyUrl] = useState("");
   const [affiliationCounts, setAffiliationCounts] = useState<Record<
     AffiliationCategory,
@@ -55,7 +54,6 @@ export default function ScreenView({ locationId }: { locationId: string }) {
   useEffect(() => {
     // window はブラウザでしか取得できないため、マウント後に反映する
     // eslint-disable-next-line react-hooks/set-state-in-effect
-    setPostUrl(`${window.location.origin}/post/${locationId}?src=qr`);
     setSurveyUrl(`${window.location.origin}/survey?loc=${locationId}`);
   }, [locationId]);
 
@@ -168,17 +166,45 @@ export default function ScreenView({ locationId }: { locationId: string }) {
         <p className="relative max-w-md px-6 text-center text-red-300">{errorMessage}</p>
       )}
 
-      {!isLoading && !errorMessage && posts.length === 0 && postUrl && (
+      {!isLoading && !errorMessage && posts.length === 0 && surveyUrl && (
         <div className="relative flex max-w-3xl flex-col items-center gap-8 px-6 text-center">
           <div className="flex flex-col items-center gap-4">
             <p className="text-xs font-bold tracking-[0.4em] text-white/50">PLACE STORY</p>
             <p className="text-3xl font-bold tracking-wide sm:text-4xl lg:text-5xl">
-              いまなにしてる？
+              本実験のアンケート
+            </p>
+            <p className="text-sm text-white/60 sm:text-base">
+              投稿の有無は問いません！どしどしお答えください！
             </p>
           </div>
-          <div className="flex flex-col items-center gap-3 rounded-3xl bg-white px-10 py-8 shadow-2xl">
-            <QRCodeSVG value={postUrl} size={310} />
-            <p className="text-sm font-medium text-gray-700">QRコードを読み取って投稿</p>
+          <div className="flex flex-col items-center gap-8 rounded-3xl bg-white px-10 py-8 shadow-2xl sm:flex-row sm:items-center">
+            <QRCodeSVG value={surveyUrl} size={310} />
+            {affiliationCounts && (
+              <div className="flex w-full flex-col gap-4 sm:w-64">
+                {AFFILIATION_CATEGORIES.map((category) => {
+                  const count = affiliationCounts[category];
+                  const max = Math.max(
+                    1,
+                    ...AFFILIATION_CATEGORIES.map((c) => affiliationCounts[c])
+                  );
+                  const percent = (count / max) * 100;
+                  return (
+                    <div key={category}>
+                      <div className="flex items-center justify-between gap-2 text-sm text-gray-600">
+                        <span className="truncate">{AFFILIATION_SHORT_LABELS[category]}</span>
+                        <span className="font-bold text-gray-900">{count}</span>
+                      </div>
+                      <div className="mt-1 h-2.5 w-full overflow-hidden rounded-full bg-gray-100">
+                        <div
+                          className="h-full rounded-full bg-gray-900 transition-all duration-500"
+                          style={{ width: `${percent}%` }}
+                        />
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
         </div>
       )}
@@ -239,15 +265,7 @@ export default function ScreenView({ locationId }: { locationId: string }) {
         </div>
       )}
 
-      {postUrl && posts.length > 0 && (
-        <div className="absolute bottom-8 right-8 flex flex-col items-center gap-3 rounded-3xl bg-white px-8 py-6 shadow-2xl">
-          <p className="text-xl font-bold tracking-wide text-gray-900">いまなにしてる？</p>
-          <QRCodeSVG value={postUrl} size={140} />
-          <p className="text-sm font-medium text-gray-700">QRコードを読み取って投稿</p>
-        </div>
-      )}
-
-      {surveyUrl && (
+      {surveyUrl && posts.length > 0 && (
         <div className="absolute bottom-8 left-8 flex flex-col items-center gap-3 rounded-3xl bg-white px-6 py-6 shadow-2xl">
           <div className="text-center">
             <p className="text-sm font-bold text-gray-900">本実験のアンケート</p>
