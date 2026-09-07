@@ -77,3 +77,37 @@ export async function fetchAffiliationCounts(): Promise<Record<AffiliationCatego
 
   return counts;
 }
+
+/**
+ * アンケート回答の総数を取得する(管理画面の表示・削除確認用)。
+ * locationIdを指定するとそのモニター経由の回答のみに絞り込む。
+ */
+export async function fetchSurveyResponseCount(locationId?: string): Promise<number | null> {
+  try {
+    let query = supabase.from(SURVEY_TABLE).select("*", { count: "exact", head: true });
+    if (locationId) {
+      query = query.eq("location_id", locationId);
+    }
+    const { count, error } = await query;
+    if (error || count === null) return null;
+    return count;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * アンケート回答を完全に削除する。取り消せない操作。
+ * locationIdを指定しない場合は全ての回答を削除する。
+ * テーブルが無い環境でも他の削除処理は成功させたいので、失敗しても無視する。
+ */
+export async function deleteAllSurveyResponses(locationId?: string): Promise<void> {
+  try {
+    const query = supabase.from(SURVEY_TABLE).delete();
+    // PostgRESTはWHERE句の無いDELETEを拒否するため、全件削除時も
+    // 「idがnullでない」という常に真の条件を明示的に付与する
+    await (locationId ? query.eq("location_id", locationId) : query.not("id", "is", null));
+  } catch {
+    // 握りつぶして他の削除処理を続行させる
+  }
+}

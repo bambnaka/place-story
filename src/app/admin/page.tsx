@@ -3,6 +3,7 @@
 import { Fragment, useCallback, useEffect, useMemo, useState } from "react";
 import { deleteAllPosts, fetchAdminPosts, setPostVisibility } from "@/lib/posts";
 import { deleteAllScans, fetchScanRows, type ScanRow } from "@/lib/scans";
+import { deleteAllSurveyResponses, fetchSurveyResponseCount } from "@/lib/survey";
 import { summarizeParticipants } from "@/lib/participantSummary";
 import type { Post } from "@/types/post";
 
@@ -25,6 +26,7 @@ function statusOf(post: Post): { label: string; className: string } {
 export default function AdminPage() {
   const [posts, setPosts] = useState<Post[]>([]);
   const [scanRows, setScanRows] = useState<ScanRow[] | null>(null);
+  const [surveyCount, setSurveyCount] = useState<number | null>(null);
   const [locationFilter, setLocationFilter] = useState("");
   const [isLoading, setIsLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -47,6 +49,8 @@ export default function AdminPage() {
       } catch {
         setScanRows(null);
       }
+
+      setSurveyCount(await fetchSurveyResponseCount(trimmed));
     } catch (err) {
       setErrorMessage(err instanceof Error ? err.message : "投稿の取得に失敗しました。");
     } finally {
@@ -131,6 +135,8 @@ export default function AdminPage() {
     const confirmed = window.confirm(
       `${scopeLabel}履歴を完全に削除します。\n投稿 ${totalPosts}件・QR読み取り履歴 ${
         scanCount ?? 0
+      }件・アンケート回答 ${
+        surveyCount ?? 0
       }件が対象で、画像もStorageから削除されます。\n\nこの操作は取り消せません。本当によろしいですか?`
     );
     if (!confirmed) return;
@@ -139,6 +145,7 @@ export default function AdminPage() {
     try {
       await deleteAllPosts(scope || undefined);
       await deleteAllScans(scope || undefined);
+      await deleteAllSurveyResponses(scope || undefined);
       await load(locationFilter);
     } catch (err) {
       setErrorMessage(err instanceof Error ? err.message : "削除に失敗しました。");
@@ -234,7 +241,11 @@ export default function AdminPage() {
               </button>
             </div>
 
-            <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
+            <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-7">
+              <div className="rounded-xl bg-white p-4 shadow-sm">
+                <p className="text-xs text-gray-500">アンケート回答数</p>
+                <p className="mt-1 text-2xl font-bold text-gray-900">{surveyCount ?? "-"}</p>
+              </div>
               <div className="rounded-xl bg-white p-4 shadow-sm">
                 <p className="text-xs text-gray-500">QR読み取り回数</p>
                 <p className="mt-1 text-2xl font-bold text-gray-900">

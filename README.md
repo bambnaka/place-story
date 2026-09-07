@@ -182,7 +182,7 @@ create policy "Allow public read place-story-images"
 
 ## 管理画面からの完全削除機能を使うためのSQL
 
-管理画面の「履歴を削除」ボタンは、投稿・QR読み取り履歴・Storage上の画像を完全に削除します(取り消せません)。これを使うには、通常の select/insert/update に加えて **delete 権限** を追加で付与する必要があります。
+管理画面の「履歴を削除」ボタンは、投稿・QR読み取り履歴・アンケート回答・Storage上の画像を完全に削除します(取り消せません)。これを使うには、通常の select/insert/update に加えて **delete 権限** を追加で付与する必要があります。
 
 ```sql
 create policy "誰でも削除できる_ps" on place_story_posts for delete using (true);
@@ -190,6 +190,9 @@ grant delete on table public.place_story_posts to anon;
 
 create policy "誰でも削除できる_scans" on place_story_scans for delete using (true);
 grant delete on table public.place_story_scans to anon;
+
+create policy "誰でも削除できる_survey" on place_story_survey_responses for delete using (true);
+grant delete on table public.place_story_survey_responses to anon;
 
 create policy "Allow public delete place-story-images"
   on storage.objects for delete
