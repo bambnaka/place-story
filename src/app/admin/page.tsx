@@ -1,6 +1,7 @@
 "use client";
 
 import { Fragment, useCallback, useEffect, useMemo, useState } from "react";
+import Link from "next/link";
 import { deleteAllPosts, fetchAdminPosts, setPostVisibility } from "@/lib/posts";
 import { deleteAllScans, fetchScanRows, type ScanRow } from "@/lib/scans";
 import { deleteAllSurveyResponses, fetchSurveyResponseCount } from "@/lib/survey";
@@ -171,7 +172,15 @@ export default function AdminPage() {
   return (
     <main className="min-h-dvh bg-gray-100 px-4 py-8">
       <div className="mx-auto max-w-4xl">
-        <h1 className="text-xl font-bold text-gray-900">管理画面</h1>
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <h1 className="text-xl font-bold text-gray-900">管理画面</h1>
+          <Link
+            href="/admin/survey"
+            className="text-xs font-medium text-gray-500 underline underline-offset-2"
+          >
+            アンケート結果を見る →
+          </Link>
+        </div>
         <p className="mt-1 text-sm text-gray-500">
           投稿の一覧確認と、不適切な投稿の非表示化ができます。
         </p>

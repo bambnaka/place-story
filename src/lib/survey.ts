@@ -27,6 +27,48 @@ export interface SurveyAnswers {
   feedback: string;
 }
 
+export const OTHER = "その他";
+
+export const PARTICIPATION_OPTIONS = [
+  "他の人の投稿を見た",
+  "QRコードを読み取った",
+  "画像を投稿した",
+  "投稿はしていない",
+];
+
+export const PRESENCE_FEELING_OPTIONS = [
+  "まったく感じなかった",
+  "あまり感じなかった",
+  "どちらともいえない",
+  "少し感じた",
+  "とても感じた",
+];
+
+export const MOTIVATION_OPTIONS = [
+  "他の人が投稿していたから",
+  "自分の痕跡を残そうと思ったから",
+  "後から来る人に投稿を見てもらおうと思ったから",
+  "モニターに表示されるのが面白いと思ったから",
+  "友達と一緒に楽しめそうだと思ったから",
+  "知らない人との交流を楽しめそうだと思ったから",
+  "24時間で投稿が消えるのが気軽だと思ったから",
+];
+
+export const EASE_OPTIONS = [
+  "普段のSNSより投稿しにくかった",
+  "あまり変わらなかった",
+  "普段のSNSより投稿しやすかった",
+];
+
+export interface SurveyResponseRow {
+  id: string;
+  location_id: string | null;
+  affiliation_category: AffiliationCategory;
+  affiliation_other: string | null;
+  answers: SurveyAnswers;
+  created_at: string;
+}
+
 export interface SubmitSurveyInput {
   locationId: string | null;
   affiliationCategory: AffiliationCategory;
@@ -94,6 +136,34 @@ export async function fetchSurveyResponseCount(locationId?: string): Promise<num
   } catch {
     return null;
   }
+}
+
+/**
+ * アンケート回答を全件取得する(管理画面の集計ページ用)。
+ */
+export async function fetchAllSurveyResponses(): Promise<SurveyResponseRow[]> {
+  const { data, error } = await supabase
+    .from(SURVEY_TABLE)
+    .select("*")
+    .order("created_at", { ascending: false });
+
+  if (error) {
+    throw new Error(`アンケート回答の取得に失敗しました: ${error.message}`);
+  }
+
+  return (data ?? []) as SurveyResponseRow[];
+}
+
+/**
+ * 文字列配列の出現回数を集計する(単一選択・複数選択どちらの設問にも使う)。
+ */
+export function tally(values: string[]): Map<string, number> {
+  const counts = new Map<string, number>();
+  for (const value of values) {
+    if (!value) continue;
+    counts.set(value, (counts.get(value) ?? 0) + 1);
+  }
+  return counts;
 }
 
 /**

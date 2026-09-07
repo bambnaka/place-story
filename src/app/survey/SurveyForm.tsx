@@ -3,47 +3,19 @@
 import { useState } from "react";
 import {
   submitSurveyResponse,
+  OTHER,
+  PARTICIPATION_OPTIONS,
+  PRESENCE_FEELING_OPTIONS,
+  MOTIVATION_OPTIONS,
+  EASE_OPTIONS,
   type AffiliationCategory,
   type SurveyAnswers,
 } from "@/lib/survey";
-
-const OTHER = "その他";
 
 const AFFILIATION_OPTIONS: AffiliationCategory[] = [
   "環境デザイン研究室",
   "コミュニケーションデザイン研究室",
   "その他",
-];
-
-const PARTICIPATION_OPTIONS = [
-  "他の人の投稿を見た",
-  "QRコードを読み取った",
-  "画像を投稿した",
-  "投稿はしていない",
-];
-
-const PRESENCE_FEELING_OPTIONS = [
-  "まったく感じなかった",
-  "あまり感じなかった",
-  "どちらともいえない",
-  "少し感じた",
-  "とても感じた",
-];
-
-const MOTIVATION_OPTIONS = [
-  "他の人が投稿していたから",
-  "自分の痕跡を残そうと思ったから",
-  "後から来る人に投稿を見てもらおうと思ったから",
-  "モニターに表示されるのが面白いと思ったから",
-  "友達と一緒に楽しめそうだと思ったから",
-  "知らない人との交流を楽しめそうだと思ったから",
-  "24時間で投稿が消えるのが気軽だと思ったから",
-];
-
-const EASE_OPTIONS = [
-  "普段のSNSより投稿しにくかった",
-  "あまり変わらなかった",
-  "普段のSNSより投稿しやすかった",
 ];
 
 type Status = "idle" | "submitting" | "done" | "error";
