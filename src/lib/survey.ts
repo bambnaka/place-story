@@ -14,6 +14,16 @@ export const AFFILIATION_SHORT_LABELS: Record<AffiliationCategory, string> = {
   その他: "その他",
 };
 
+/**
+ * モニター等の棒グラフで、所属ごとに色分けするためのTailwindクラス。
+ * 環境デザイン研究室=緑、コミュニケーションデザイン研究室=オレンジ、その他=青。
+ */
+export const AFFILIATION_BAR_COLORS: Record<AffiliationCategory, string> = {
+  環境デザイン研究室: "bg-emerald-500",
+  コミュニケーションデザイン研究室: "bg-orange-500",
+  その他: "bg-blue-500",
+};
+
 export interface SurveyAnswers {
   participation: string[];
   presenceFeeling: string;

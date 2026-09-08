@@ -8,6 +8,7 @@ import {
   fetchAffiliationCounts,
   AFFILIATION_CATEGORIES,
   AFFILIATION_SHORT_LABELS,
+  AFFILIATION_BAR_COLORS,
   type AffiliationCategory,
 } from "@/lib/survey";
 import type { Post } from "@/types/post";
@@ -180,7 +181,7 @@ export default function ScreenView({ locationId }: { locationId: string }) {
           <div className="flex flex-col items-center gap-8 rounded-3xl bg-white px-10 py-8 shadow-2xl sm:flex-row sm:items-center">
             <QRCodeSVG value={surveyUrl} size={310} />
             {affiliationCounts && (
-              <div className="flex w-full flex-col gap-4 sm:w-64">
+              <div className="flex w-full flex-col gap-5 sm:w-96">
                 {AFFILIATION_CATEGORIES.map((category) => {
                   const count = affiliationCounts[category];
                   const max = Math.max(
@@ -190,13 +191,13 @@ export default function ScreenView({ locationId }: { locationId: string }) {
                   const percent = (count / max) * 100;
                   return (
                     <div key={category}>
-                      <div className="flex items-center justify-between gap-2 text-sm text-gray-600">
+                      <div className="flex items-center justify-between gap-2 text-base text-gray-600">
                         <span className="truncate">{AFFILIATION_SHORT_LABELS[category]}</span>
                         <span className="font-bold text-gray-900">{count}</span>
                       </div>
-                      <div className="mt-1 h-2.5 w-full overflow-hidden rounded-full bg-gray-100">
+                      <div className="mt-1.5 h-4 w-full overflow-hidden rounded-full bg-gray-100">
                         <div
-                          className="h-full rounded-full bg-gray-900 transition-all duration-500"
+                          className={`h-full rounded-full transition-all duration-500 ${AFFILIATION_BAR_COLORS[category]}`}
                           style={{ width: `${percent}%` }}
                         />
                       </div>
@@ -271,10 +272,10 @@ export default function ScreenView({ locationId }: { locationId: string }) {
             <p className="text-sm font-bold text-gray-900">本実験のアンケート</p>
             <p className="text-xs text-gray-500">投稿していない人も回答対象です！ぜひ教えてください</p>
           </div>
-          <div className="flex items-center gap-5">
+          <div className="flex items-center gap-6">
             <QRCodeSVG value={surveyUrl} size={240} />
             {affiliationCounts && (
-              <div className="flex w-40 flex-col gap-2">
+              <div className="flex w-64 flex-col gap-3">
                 {AFFILIATION_CATEGORIES.map((category) => {
                   const count = affiliationCounts[category];
                   const max = Math.max(
@@ -284,13 +285,13 @@ export default function ScreenView({ locationId }: { locationId: string }) {
                   const percent = (count / max) * 100;
                   return (
                     <div key={category}>
-                      <div className="flex items-center justify-between gap-2 text-[10px] text-gray-600">
+                      <div className="flex items-center justify-between gap-2 text-sm text-gray-600">
                         <span className="truncate">{AFFILIATION_SHORT_LABELS[category]}</span>
                         <span className="font-bold text-gray-900">{count}</span>
                       </div>
-                      <div className="mt-0.5 h-1.5 w-full overflow-hidden rounded-full bg-gray-100">
+                      <div className="mt-1 h-3 w-full overflow-hidden rounded-full bg-gray-100">
                         <div
-                          className="h-full rounded-full bg-gray-900 transition-all duration-500"
+                          className={`h-full rounded-full transition-all duration-500 ${AFFILIATION_BAR_COLORS[category]}`}
                           style={{ width: `${percent}%` }}
                         />
                       </div>
