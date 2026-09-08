@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import {
   fetchAllSurveyResponses,
+  deleteSurveyResponse,
   tally,
   AFFILIATION_CATEGORIES,
   PARTICIPATION_OPTIONS,
@@ -83,22 +84,42 @@ export default function AdminSurveyPage() {
   const [responses, setResponses] = useState<SurveyResponseRow[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
+
+  async function load() {
+    setIsLoading(true);
+    try {
+      const data = await fetchAllSurveyResponses();
+      setResponses(data);
+      setErrorMessage(null);
+    } catch (err) {
+      setErrorMessage(err instanceof Error ? err.message : "アンケート結果の取得に失敗しました。");
+    } finally {
+      setIsLoading(false);
+    }
+  }
 
   useEffect(() => {
-    (async () => {
-      try {
-        const data = await fetchAllSurveyResponses();
-        setResponses(data);
-        setErrorMessage(null);
-      } catch (err) {
-        setErrorMessage(
-          err instanceof Error ? err.message : "アンケート結果の取得に失敗しました。"
-        );
-      } finally {
-        setIsLoading(false);
-      }
-    })();
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    load();
   }, []);
+
+  async function handleDelete(id: string) {
+    const confirmed = window.confirm(
+      "この回答を完全に削除します。この操作は取り消せません。本当によろしいですか?"
+    );
+    if (!confirmed) return;
+
+    setPendingDeleteId(id);
+    try {
+      await deleteSurveyResponse(id);
+      setResponses((prev) => prev.filter((r) => r.id !== id));
+    } catch (err) {
+      setErrorMessage(err instanceof Error ? err.message : "削除に失敗しました。");
+    } finally {
+      setPendingDeleteId(null);
+    }
+  }
 
   const total = responses.length;
 
@@ -224,6 +245,73 @@ export default function AdminSurveyPage() {
               <p className="text-xs text-gray-500">総回答数</p>
               <p className="mt-1 text-2xl font-bold text-gray-900">{total}</p>
             </div>
+
+            <section className="rounded-2xl bg-white p-5 shadow-sm">
+              <h2 className="text-sm font-bold text-gray-900">個別の回答(削除できます)</h2>
+              <ul className="mt-3 flex flex-col gap-3">
+                {responses.map((r) => (
+                  <li key={r.id} className="rounded-xl border border-gray-100 p-4">
+                    <div className="flex flex-wrap items-start justify-between gap-3">
+                      <div className="flex flex-wrap items-center gap-2 text-xs text-gray-400">
+                        <span>{formatDateTime(r.created_at)}</span>
+                        {r.location_id && <span>· {r.location_id}</span>}
+                        <span className="rounded-full bg-gray-100 px-2 py-0.5 font-medium text-gray-600">
+                          {r.affiliation_category}
+                          {r.affiliation_other ? `(${r.affiliation_other})` : ""}
+                        </span>
+                      </div>
+                      <button
+                        type="button"
+                        disabled={pendingDeleteId === r.id}
+                        onClick={() => handleDelete(r.id)}
+                        className="shrink-0 rounded-full border border-red-200 px-3 py-1 text-xs font-medium text-red-600 hover:bg-red-50 disabled:opacity-50"
+                      >
+                        {pendingDeleteId === r.id ? "削除中..." : "削除"}
+                      </button>
+                    </div>
+                    <dl className="mt-3 flex flex-col gap-1.5 text-sm text-gray-700">
+                      <div>
+                        <dt className="text-xs text-gray-400">関わり方</dt>
+                        <dd>{r.answers.participation?.join("・") || "(未回答)"}</dd>
+                      </div>
+                      <div>
+                        <dt className="text-xs text-gray-400">他者の存在を感じたか</dt>
+                        <dd>
+                          {r.answers.presenceFeeling}
+                          {r.answers.presenceFeelingOther
+                            ? `(${r.answers.presenceFeelingOther})`
+                            : ""}
+                          {r.answers.presenceReason ? ` — ${r.answers.presenceReason}` : ""}
+                        </dd>
+                      </div>
+                      <div>
+                        <dt className="text-xs text-gray-400">投稿のモチベーション</dt>
+                        <dd>
+                          {r.answers.motivation?.join("・") || "(未回答)"}
+                          {r.answers.motivationOther ? `(${r.answers.motivationOther})` : ""}
+                        </dd>
+                      </div>
+                      <div>
+                        <dt className="text-xs text-gray-400">SNSとの比較</dt>
+                        <dd>
+                          {r.answers.easeOfPosting}
+                          {r.answers.easeOfPostingOther
+                            ? `(${r.answers.easeOfPostingOther})`
+                            : ""}
+                          {r.answers.easeReason ? ` — ${r.answers.easeReason}` : ""}
+                        </dd>
+                      </div>
+                      {r.answers.feedback && (
+                        <div>
+                          <dt className="text-xs text-gray-400">感想</dt>
+                          <dd className="whitespace-pre-wrap">{r.answers.feedback}</dd>
+                        </div>
+                      )}
+                    </dl>
+                  </li>
+                ))}
+              </ul>
+            </section>
 
             <section className="rounded-2xl bg-white p-5 shadow-sm">
               <h2 className="text-sm font-bold text-gray-900">あなたの所属はどこですか？</h2>

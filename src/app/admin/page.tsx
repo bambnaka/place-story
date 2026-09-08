@@ -378,28 +378,43 @@ export default function AdminPage() {
                             {row.postCount > 1 && <> 〜 {formatDateTime(row.lastPostAt)}</>}
                           </td>
                           <td className="px-4 py-3">
-                            {row.postCount > 1 && (
-                              <button
-                                type="button"
-                                onClick={() => toggleExpanded(row.key)}
-                                className="text-xs font-medium text-gray-500 underline underline-offset-2"
-                              >
-                                {isExpanded ? "閉じる" : `全${row.postCount}件を見る`}
-                              </button>
-                            )}
+                            <button
+                              type="button"
+                              onClick={() => toggleExpanded(row.key)}
+                              className="text-xs font-medium text-gray-500 underline underline-offset-2"
+                            >
+                              {isExpanded
+                                ? "閉じる"
+                                : row.postCount > 1
+                                  ? `全${row.postCount}件を見る`
+                                  : "投稿を見る"}
+                            </button>
                           </td>
                         </tr>
                         {isExpanded && (
                           <tr className="border-b border-gray-50 bg-gray-50/60 last:border-0">
                             <td />
                             <td colSpan={5} className="px-4 py-3">
-                              <ul className="flex flex-wrap gap-2">
-                                {row.postTimes.map((time, timeIndex) => (
+                              <ul className="flex flex-col gap-2">
+                                {row.posts.map((post) => (
                                   <li
-                                    key={`${row.key}-${time}-${timeIndex}`}
-                                    className="rounded-full bg-white px-2.5 py-1 text-xs text-gray-600 shadow-sm"
+                                    key={post.id}
+                                    className="flex flex-col gap-3 rounded-lg bg-white p-3 shadow-sm sm:flex-row sm:items-center"
                                   >
-                                    {formatDateTime(time)}
+                                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                                    <img
+                                      src={post.image_url}
+                                      alt={post.comment ?? "投稿画像"}
+                                      className="h-16 w-16 shrink-0 rounded-lg object-cover"
+                                    />
+                                    <div className="min-w-0 flex-1">
+                                      <p className="truncate text-sm text-gray-800">
+                                        {post.comment || "(コメントなし)"}
+                                      </p>
+                                      <p className="mt-1 text-xs text-gray-400">
+                                        {post.location_id} / {formatDateTime(post.created_at)}
+                                      </p>
+                                    </div>
                                   </li>
                                 ))}
                               </ul>

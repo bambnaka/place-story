@@ -167,6 +167,16 @@ export function tally(values: string[]): Map<string, number> {
 }
 
 /**
+ * アンケート回答を1件だけ削除する。取り消せない操作。
+ */
+export async function deleteSurveyResponse(id: string): Promise<void> {
+  const { error } = await supabase.from(SURVEY_TABLE).delete().eq("id", id);
+  if (error) {
+    throw new Error(`アンケート回答の削除に失敗しました: ${error.message}`);
+  }
+}
+
+/**
  * アンケート回答を完全に削除する。取り消せない操作。
  * locationIdを指定しない場合は全ての回答を削除する。
  * テーブルが無い環境でも他の削除処理は成功させたいので、失敗しても無視する。
