@@ -174,7 +174,7 @@ export default function ScreenView({ locationId }: { locationId: string }) {
               本実験のアンケート
             </p>
             <p className="text-sm text-white/60 sm:text-base">
-              投稿の有無は問いません！どしどしお答えください！
+              投稿していない人も回答対象です！ぜひ教えてください
             </p>
           </div>
           <div className="flex flex-col items-center gap-8 rounded-3xl bg-white px-10 py-8 shadow-2xl sm:flex-row sm:items-center">
@@ -269,7 +269,7 @@ export default function ScreenView({ locationId }: { locationId: string }) {
         <div className="absolute bottom-8 left-8 flex flex-col items-center gap-3 rounded-3xl bg-white px-6 py-6 shadow-2xl">
           <div className="text-center">
             <p className="text-sm font-bold text-gray-900">本実験のアンケート</p>
-            <p className="text-xs text-gray-500">投稿の有無は問いません！どしどしお答えください！</p>
+            <p className="text-xs text-gray-500">投稿していない人も回答対象です！ぜひ教えてください</p>
           </div>
           <div className="flex items-center gap-5">
             <QRCodeSVG value={surveyUrl} size={240} />
