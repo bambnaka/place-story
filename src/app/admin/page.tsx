@@ -155,6 +155,25 @@ export default function AdminPage() {
     }
   }
 
+  async function handleDeleteLocation(targetLocationId: string, postCount: number) {
+    const confirmed = window.confirm(
+      `「${targetLocationId}」の履歴を完全に削除します。\n投稿 ${postCount}件が対象です(関連するQR読み取り履歴・アンケート回答・画像も削除されます)。\n\nこの操作は取り消せません。本当によろしいですか?`
+    );
+    if (!confirmed) return;
+
+    setIsDeleting(true);
+    try {
+      await deleteAllPosts(targetLocationId);
+      await deleteAllScans(targetLocationId);
+      await deleteAllSurveyResponses(targetLocationId);
+      await load(locationFilter);
+    } catch (err) {
+      setErrorMessage(err instanceof Error ? err.message : "削除に失敗しました。");
+    } finally {
+      setIsDeleting(false);
+    }
+  }
+
   async function toggleVisibility(post: Post) {
     setPendingId(post.id);
     try {
@@ -418,18 +437,28 @@ export default function AdminPage() {
                       ({items.length}件)
                     </span>
                   </h3>
-                  {!locationFilter.trim() && (
+                  <div className="flex items-center gap-3">
+                    {!locationFilter.trim() && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setLocationFilter(locationId);
+                          load(locationId);
+                        }}
+                        className="text-xs font-medium text-gray-500 underline underline-offset-2"
+                      >
+                        この場所だけ表示
+                      </button>
+                    )}
                     <button
                       type="button"
-                      onClick={() => {
-                        setLocationFilter(locationId);
-                        load(locationId);
-                      }}
-                      className="text-xs font-medium text-gray-500 underline underline-offset-2"
+                      disabled={isDeleting}
+                      onClick={() => handleDeleteLocation(locationId, items.length)}
+                      className="text-xs font-medium text-red-500 underline underline-offset-2 disabled:opacity-50"
                     >
-                      この場所だけ表示
+                      この場所を削除
                     </button>
-                  )}
+                  </div>
                 </div>
                 <ul className="flex flex-col gap-3">
                   {items.map((post) => {
