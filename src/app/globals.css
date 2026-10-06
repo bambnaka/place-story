@@ -60,3 +60,10 @@ body {
     transform: translate(-10%, 14%) scale(0.85);
   }
 }
+
+/* 縦置きサイネージ(9:16)用ステージ。幅に合わせて中身をcqw単位で拡縮する */
+.screen-stage {
+  container-type: inline-size;
+  width: min(100vw, calc(100dvh * 9 / 16));
+  aspect-ratio: 9 / 16;
+}

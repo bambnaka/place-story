@@ -15,9 +15,10 @@ import type { Post } from "@/types/post";
 
 const FETCH_INTERVAL_MS = 30_000;
 const ROTATE_INTERVAL_MS = 12_000;
-const CARD_WIDTH_VW = 88;
-const CARD_GAP_VW = 2;
-const CARD_STEP_VW = CARD_WIDTH_VW + CARD_GAP_VW;
+// 縦置きサイネージ(9:16)のステージ幅を100とした単位(cqw)で指定する
+const CARD_WIDTH_CQ = 86;
+const CARD_GAP_CQ = 2;
+const CARD_STEP_CQ = CARD_WIDTH_CQ + CARD_GAP_CQ;
 
 function formatElapsed(createdAt: string): string {
   const diffMs = Date.now() - new Date(createdAt).getTime();
@@ -26,6 +27,45 @@ function formatElapsed(createdAt: string): string {
   if (minutes < 60) return `${minutes}分前`;
   const hours = Math.floor(minutes / 60);
   return `${hours}時間前`;
+}
+
+function AffiliationChart({
+  counts,
+  large = false,
+}: {
+  counts: Record<AffiliationCategory, number>;
+  large?: boolean;
+}) {
+  const max = Math.max(1, ...AFFILIATION_CATEGORIES.map((c) => counts[c]));
+  return (
+    <div className={`flex w-full flex-col ${large ? "gap-[3cqw]" : "gap-[2.4cqw]"}`}>
+      {AFFILIATION_CATEGORIES.map((category) => {
+        const count = counts[category];
+        return (
+          <div key={category}>
+            <div
+              className={`flex items-baseline justify-between gap-[1.5cqw] text-gray-600 ${
+                large ? "text-[3.4cqw]" : "text-[2.6cqw]"
+              }`}
+            >
+              <span className="truncate">{AFFILIATION_SHORT_LABELS[category]}</span>
+              <span className="font-bold text-gray-900">{count}</span>
+            </div>
+            <div
+              className={`mt-[1cqw] w-full overflow-hidden rounded-full bg-gray-100 ${
+                large ? "h-[3cqw]" : "h-[2.4cqw]"
+              }`}
+            >
+              <div
+                className={`h-full rounded-full transition-all duration-500 ${AFFILIATION_BAR_COLORS[category]}`}
+                style={{ width: `${(count / max) * 100}%` }}
+              />
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
 }
 
 export default function ScreenView({ locationId }: { locationId: string }) {
@@ -139,7 +179,7 @@ export default function ScreenView({ locationId }: { locationId: string }) {
   const activePost = posts[activeIndex];
 
   return (
-    <main className="relative flex min-h-dvh flex-col items-center justify-center overflow-hidden text-white">
+    <main className="relative flex min-h-dvh items-center justify-center overflow-hidden text-white">
       <div className="pointer-events-none absolute inset-0 z-0 overflow-hidden bg-black">
         <div
           className="absolute top-[-20%] left-[-15%] h-[70vh] w-[70vh] rounded-full bg-red-600/40 blur-[120px]"
@@ -159,150 +199,130 @@ export default function ScreenView({ locationId }: { locationId: string }) {
         />
       </div>
 
-      {isLoading && (
-        <p className="relative text-white/60">読み込み中...</p>
-      )}
+      {/* 縦置きサイネージ(9:16)専用のステージ。内部の寸法は全て cqw(ステージ幅の1%)で指定 */}
+      <div className="screen-stage relative z-10 flex flex-col items-center">
+        {isLoading && (
+          <p className="m-auto text-[3cqw] text-white/60">読み込み中...</p>
+        )}
 
-      {!isLoading && errorMessage && (
-        <p className="relative max-w-md px-6 text-center text-red-300">{errorMessage}</p>
-      )}
+        {!isLoading && errorMessage && (
+          <p className="m-auto max-w-[80cqw] text-center text-[3cqw] text-red-300">
+            {errorMessage}
+          </p>
+        )}
 
-      {!isLoading && !errorMessage && posts.length === 0 && surveyUrl && (
-        <div className="relative flex max-w-3xl flex-col items-center gap-8 px-6 text-center">
-          <div className="flex flex-col items-center gap-4">
-            <p className="text-xs font-bold tracking-[0.4em] text-white/50">PLACE STORY</p>
-            <p className="text-3xl font-bold tracking-wide sm:text-4xl lg:text-5xl">
-              本実験のアンケート
-            </p>
-            <p className="text-sm text-white/60 sm:text-base">
-              投稿していない人も回答対象です！ぜひ教えてください
-            </p>
-          </div>
-          <div className="flex flex-col items-center gap-8 rounded-3xl bg-white px-10 py-8 shadow-2xl sm:flex-row sm:items-center">
-            <QRCodeSVG value={surveyUrl} size={310} />
-            {affiliationCounts && (
-              <div className="flex w-full flex-col gap-5 sm:w-96">
-                {AFFILIATION_CATEGORIES.map((category) => {
-                  const count = affiliationCounts[category];
-                  const max = Math.max(
-                    1,
-                    ...AFFILIATION_CATEGORIES.map((c) => affiliationCounts[c])
-                  );
-                  const percent = (count / max) * 100;
-                  return (
-                    <div key={category}>
-                      <div className="flex items-center justify-between gap-2 text-base text-gray-600">
-                        <span className="truncate">{AFFILIATION_SHORT_LABELS[category]}</span>
-                        <span className="font-bold text-gray-900">{count}</span>
-                      </div>
-                      <div className="mt-1.5 h-4 w-full overflow-hidden rounded-full bg-gray-100">
-                        <div
-                          className={`h-full rounded-full transition-all duration-500 ${AFFILIATION_BAR_COLORS[category]}`}
-                          style={{ width: `${percent}%` }}
-                        />
-                      </div>
-                    </div>
-                  );
-                })}
+        {!isLoading && !errorMessage && posts.length === 0 && surveyUrl && (
+          <div className="flex w-full flex-1 flex-col items-center justify-center gap-[5cqw] px-[4cqw] text-center">
+            <div className="flex flex-col items-center gap-[2.5cqw]">
+              <p className="text-[2.2cqw] font-bold tracking-[0.4em] text-white/50">
+                PLACE STORY
+              </p>
+              <p className="text-[9cqw] leading-tight font-bold tracking-wide">
+                本実験のアンケート
+              </p>
+              <p className="text-[3cqw] text-white/60">
+                投稿していない人も回答対象です！ぜひ教えてください
+              </p>
+            </div>
+            <div className="flex w-full flex-col items-center gap-[4cqw] rounded-[4cqw] bg-white px-[6cqw] py-[5cqw] shadow-2xl">
+              <div className="w-[52cqw]">
+                <QRCodeSVG value={surveyUrl} size={512} style={{ width: "100%", height: "auto" }} />
               </div>
-            )}
+              {affiliationCounts && <AffiliationChart counts={affiliationCounts} large />}
+            </div>
           </div>
-        </div>
-      )}
+        )}
 
-      {!isLoading && activePost && (
-        <div className="relative flex w-full flex-col items-center gap-6">
-          <div className="relative h-[78dvh] w-full overflow-hidden">
+        {!isLoading && activePost && (
+          <div className="flex w-full flex-1 flex-col items-center pt-[5cqw] pb-[4cqw]">
+            <p className="text-[2.2cqw] font-bold tracking-[0.4em] text-white/50">PLACE STORY</p>
+
+            <div className="my-auto flex w-full flex-col items-center">
             <div
-              className="absolute top-0 flex h-full items-center gap-x-[2vw] transition-transform duration-[1300ms] ease-in-out"
-              style={{
-                left: "50%",
-                transform: `translateX(-${activeIndex * CARD_STEP_VW + CARD_WIDTH_VW / 2}vw)`,
-              }}
+              className="relative w-full overflow-hidden"
+              style={{ height: `${(CARD_WIDTH_CQ * 9) / 16 + 4}cqw` }}
             >
-              {posts.map((post, i) => (
-                <div
-                  key={post.id}
-                  className="flex h-full shrink-0 items-center justify-center transition-all duration-[1300ms] ease-in-out"
-                  style={{
-                    width: `${CARD_WIDTH_VW}vw`,
-                    opacity: i === activeIndex ? 1 : 0.35,
-                    transform: i === activeIndex ? "scale(1)" : "scale(0.9)",
-                  }}
-                >
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src={post.image_url}
-                    alt={post.comment ?? "投稿画像"}
-                    className="h-full w-full rounded-2xl object-cover shadow-2xl"
+              <div
+                className="absolute top-0 flex h-full items-center gap-x-[2cqw] transition-transform duration-[1300ms] ease-in-out"
+                style={{
+                  left: "50%",
+                  transform: `translateX(-${activeIndex * CARD_STEP_CQ + CARD_WIDTH_CQ / 2}cqw)`,
+                }}
+              >
+                {posts.map((post, i) => (
+                  <div
+                    key={post.id}
+                    className="shrink-0 transition-all duration-[1300ms] ease-in-out"
+                    style={{
+                      width: `${CARD_WIDTH_CQ}cqw`,
+                      opacity: i === activeIndex ? 1 : 0.35,
+                      transform: i === activeIndex ? "scale(1)" : "scale(0.92)",
+                    }}
+                  >
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={post.image_url}
+                      alt={post.comment ?? "投稿画像"}
+                      className="aspect-video w-full rounded-[2cqw] object-cover shadow-2xl"
+                    />
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="mt-[5cqw] flex min-h-[26cqw] w-full flex-col items-center gap-[1.5cqw] px-[6cqw] text-center">
+              {activePost.comment && (
+                <p className="line-clamp-3 text-[7cqw] leading-tight font-bold">
+                  {activePost.comment}
+                </p>
+              )}
+              <p className="text-[2.4cqw] text-white/50">
+                {activePost.nickname ? `${activePost.nickname} · ` : ""}
+                {formatElapsed(activePost.created_at)}
+              </p>
+            </div>
+
+            {posts.length > 1 && (
+              <div className="mt-[2cqw] flex gap-[1cqw]">
+                {posts.map((p, i) => (
+                  <span
+                    key={p.id}
+                    className={`h-[1cqw] w-[1cqw] rounded-full transition ${
+                      i === activeIndex ? "bg-white" : "bg-white/30"
+                    }`}
                   />
-                </div>
-              ))}
-            </div>
-          </div>
-
-          <div className="flex w-full max-w-2xl flex-col items-center gap-1 px-6 text-center">
-            {activePost.comment && (
-              <p className="text-3xl font-bold sm:text-4xl">{activePost.comment}</p>
+                ))}
+              </div>
             )}
-            <p className="text-sm text-white/50">
-              {activePost.nickname ? `${activePost.nickname} · ` : ""}
-              {formatElapsed(activePost.created_at)}
-            </p>
-          </div>
-
-          {posts.length > 1 && (
-            <div className="flex gap-1.5">
-              {posts.map((p, i) => (
-                <span
-                  key={p.id}
-                  className={`h-1.5 w-1.5 rounded-full transition ${
-                    i === activeIndex ? "bg-white" : "bg-white/30"
-                  }`}
-                />
-              ))}
             </div>
-          )}
-        </div>
-      )}
 
-      {surveyUrl && posts.length > 0 && (
-        <div className="absolute bottom-8 left-8 flex flex-col items-center gap-3 rounded-3xl bg-white px-6 py-6 shadow-2xl">
-          <div className="text-center">
-            <p className="text-sm font-bold text-gray-900">本実験のアンケート</p>
-            <p className="text-xs text-gray-500">投稿していない人も回答対象です！ぜひ教えてください</p>
-          </div>
-          <div className="flex items-center gap-6">
-            <QRCodeSVG value={surveyUrl} size={240} />
-            {affiliationCounts && (
-              <div className="flex w-64 flex-col gap-3">
-                {AFFILIATION_CATEGORIES.map((category) => {
-                  const count = affiliationCounts[category];
-                  const max = Math.max(
-                    1,
-                    ...AFFILIATION_CATEGORIES.map((c) => affiliationCounts[c])
-                  );
-                  const percent = (count / max) * 100;
-                  return (
-                    <div key={category}>
-                      <div className="flex items-center justify-between gap-2 text-sm text-gray-600">
-                        <span className="truncate">{AFFILIATION_SHORT_LABELS[category]}</span>
-                        <span className="font-bold text-gray-900">{count}</span>
-                      </div>
-                      <div className="mt-1 h-3 w-full overflow-hidden rounded-full bg-gray-100">
-                        <div
-                          className={`h-full rounded-full transition-all duration-500 ${AFFILIATION_BAR_COLORS[category]}`}
-                          style={{ width: `${percent}%` }}
-                        />
-                      </div>
+            {surveyUrl && (
+              <div className="flex w-[92cqw] flex-col items-center gap-[2.5cqw] rounded-[4cqw] bg-white px-[4cqw] py-[3.5cqw] shadow-2xl">
+                <div className="text-center">
+                  <p className="text-[3.4cqw] font-bold text-gray-900">本実験のアンケート</p>
+                  <p className="text-[2.2cqw] text-gray-500">
+                    投稿していない人も回答対象です！ぜひ教えてください
+                  </p>
+                </div>
+                <div className="flex w-full items-center gap-[4cqw]">
+                  <div className="w-[38cqw] shrink-0">
+                    <QRCodeSVG
+                      value={surveyUrl}
+                      size={512}
+                      style={{ width: "100%", height: "auto" }}
+                    />
+                  </div>
+                  {affiliationCounts && (
+                    <div className="flex-1">
+                      <AffiliationChart counts={affiliationCounts} />
                     </div>
-                  );
-                })}
+                  )}
+                </div>
               </div>
             )}
           </div>
-        </div>
-      )}
+        )}
+      </div>
     </main>
   );
 }
