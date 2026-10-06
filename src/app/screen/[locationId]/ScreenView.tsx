@@ -68,11 +68,20 @@ function AffiliationChart({
   );
 }
 
-export default function ScreenView({ locationId }: { locationId: string }) {
+export type ScreenMode = "post" | "survey";
+
+export default function ScreenView({
+  locationId,
+  mode = "post",
+}: {
+  locationId: string;
+  mode?: ScreenMode;
+}) {
   const [posts, setPosts] = useState<Post[]>([]);
   const [activeIndex, setActiveIndex] = useState(0);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [postUrl, setPostUrl] = useState("");
   const [surveyUrl, setSurveyUrl] = useState("");
   const [affiliationCounts, setAffiliationCounts] = useState<Record<
     AffiliationCategory,
@@ -95,6 +104,7 @@ export default function ScreenView({ locationId }: { locationId: string }) {
   useEffect(() => {
     // window はブラウザでしか取得できないため、マウント後に反映する
     // eslint-disable-next-line react-hooks/set-state-in-effect
+    setPostUrl(`${window.location.origin}/post/${locationId}?src=qr`);
     setSurveyUrl(`${window.location.origin}/survey?loc=${locationId}`);
   }, [locationId]);
 
@@ -177,6 +187,8 @@ export default function ScreenView({ locationId }: { locationId: string }) {
   }, []);
 
   const activePost = posts[activeIndex];
+  const isSurvey = mode === "survey";
+  const qrUrl = isSurvey ? surveyUrl : postUrl;
 
   return (
     <main className="relative flex min-h-dvh items-center justify-center overflow-hidden text-white">
@@ -211,24 +223,31 @@ export default function ScreenView({ locationId }: { locationId: string }) {
           </p>
         )}
 
-        {!isLoading && !errorMessage && posts.length === 0 && surveyUrl && (
+        {!isLoading && !errorMessage && posts.length === 0 && qrUrl && (
           <div className="flex w-full flex-1 flex-col items-center justify-center gap-[5cqw] px-[4cqw] text-center">
             <div className="flex flex-col items-center gap-[2.5cqw]">
               <p className="text-[2.2cqw] font-bold tracking-[0.4em] text-white/50">
                 PLACE STORY
               </p>
               <p className="text-[9cqw] leading-tight font-bold tracking-wide">
-                本実験のアンケート
+                {isSurvey ? "本実験のアンケート" : "いまなにしてる？"}
               </p>
-              <p className="text-[3cqw] text-white/60">
-                投稿していない人も回答対象です！ぜひ教えてください
-              </p>
+              {isSurvey && (
+                <p className="text-[3cqw] text-white/60">
+                  投稿していない人も回答対象です！ぜひ教えてください
+                </p>
+              )}
             </div>
             <div className="flex w-full flex-col items-center gap-[4cqw] rounded-[4cqw] bg-white px-[6cqw] py-[5cqw] shadow-2xl">
               <div className="w-[52cqw]">
-                <QRCodeSVG value={surveyUrl} size={512} style={{ width: "100%", height: "auto" }} />
+                <QRCodeSVG value={qrUrl} size={512} style={{ width: "100%", height: "auto" }} />
               </div>
-              {affiliationCounts && <AffiliationChart counts={affiliationCounts} large />}
+              {isSurvey && affiliationCounts && (
+                <AffiliationChart counts={affiliationCounts} large />
+              )}
+              {!isSurvey && (
+                <p className="text-[3.4cqw] font-medium text-gray-700">QRコードを読み取って投稿</p>
+              )}
             </div>
           </div>
         )}
@@ -296,7 +315,7 @@ export default function ScreenView({ locationId }: { locationId: string }) {
             )}
             </div>
 
-            {surveyUrl && (
+            {qrUrl && isSurvey && (
               <div className="flex w-[92cqw] flex-col items-center gap-[2.5cqw] rounded-[4cqw] bg-white px-[4cqw] py-[3.5cqw] shadow-2xl">
                 <div className="text-center">
                   <p className="text-[3.4cqw] font-bold text-gray-900">本実験のアンケート</p>
@@ -307,7 +326,7 @@ export default function ScreenView({ locationId }: { locationId: string }) {
                 <div className="flex w-full items-center gap-[4cqw]">
                   <div className="w-[38cqw] shrink-0">
                     <QRCodeSVG
-                      value={surveyUrl}
+                      value={qrUrl}
                       size={512}
                       style={{ width: "100%", height: "auto" }}
                     />
@@ -317,6 +336,24 @@ export default function ScreenView({ locationId }: { locationId: string }) {
                       <AffiliationChart counts={affiliationCounts} />
                     </div>
                   )}
+                </div>
+              </div>
+            )}
+
+            {qrUrl && !isSurvey && (
+              <div className="flex w-[92cqw] items-center justify-center gap-[4cqw] rounded-[4cqw] bg-white px-[4cqw] py-[3.5cqw] shadow-2xl">
+                <div className="w-[36cqw] shrink-0">
+                  <QRCodeSVG value={qrUrl} size={512} style={{ width: "100%", height: "auto" }} />
+                </div>
+                <div className="flex flex-col gap-[2cqw]">
+                  <p className="text-[5cqw] leading-tight font-bold tracking-wide whitespace-nowrap text-gray-900">
+                    いまなにしてる？
+                  </p>
+                  <p className="text-[3cqw] font-medium text-gray-600">
+                    QRコードを読み取って
+                    <br />
+                    あなたも投稿しよう
+                  </p>
                 </div>
               </div>
             )}
